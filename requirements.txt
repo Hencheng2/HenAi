@@ -1,0 +1,131 @@
+# Already in your list (keeping your versions):
+bleach==6.1.0
+blinker==1.9.0
+certifi==2026.2.25
+charset-normalizer
+click==8.3.1
+colorama==0.4.6
+Flask==3.0.0
+Flask-Cors==4.0.0
+gunicorn==21.2.0
+idna==3.11
+itsdangerous==2.2.0
+Jinja2==3.1.6
+lxml==6.0.2
+Markdown==3.5.1
+MarkupSafe==3.0.3
+packaging==26.0
+Pygments==2.17.2
+PyPDF2==3.0.1
+python-docx==1.2.0
+python-dotenv==1.0.0
+requests==2.31.0
+six==1.17.0
+typing_extensions==4.15.0
+urllib3
+webencodings==0.5.1
+Werkzeug==3.1.7
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0
+pydub>=0.25.0
+SpeechRecognition>=3.10.0
+librosa>=0.10.0
+moviepy>=1.0.3
+pdfplumber>=0.10.0
+python-pptx>=0.6.21
+patool>=1.12
+pefile>=2023.2.7
+pyelftools>=0.29
+python-magic-bin
+exifread>=3.0.0
+pytesseract>=0.3.10
+easyocr>=1.7.0
+openpyxl>=3.1.0
+fontTools>=4.43.0
+mutagen>=1.47.0
+chardet>=5.2.0
+beautifulsoup4>=4.12.0
+pandas>=2.0.0
+
+# Additional packages needed for docs.py:
+
+# PDF Processing
+reportlab
+
+# Spreadsheets
+xlrd
+xlwt
+pyxlsb
+
+# Data Formats
+pyyaml
+toml
+h5py
+netCDF4
+
+# Archives
+py7zr
+rarfile
+
+# Database
+sqlalchemy
+records
+
+# Audio/Video
+ffmpeg-python
+
+# Scientific
+scipy
+numpy
+pyreadstat
+
+# Business/Financial
+ofxparse
+
+# CAD/3D
+ezdxf
+numpy-stl
+trimesh
+
+# Ebooks
+ebooklib
+
+# Markup/Web
+mistune
+
+# Code Analysis
+jedi
+black
+autopep8
+
+# Security
+cryptography
+pyOpenSSL
+
+# Machine Learning (if needed)
+tensorflow
+torch
+onnx
+joblib
+
+# ==================== FREE IMAGE GENERATION ====================
+
+# Core local generation (requires GPU)
+diffusers
+transformers
+accelerate
+safetensors
+torch
+torchvision
+
+# Optional optimizations (free, makes it faster)
+xformers
+einops
+bitsandbytes
+
+# For Replicate (free credits)
+replicate
+
+prompt-toolkit
+psutil
+pathlib2
