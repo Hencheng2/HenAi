@@ -1,17 +1,15 @@
-# app.py - Chat & Search Only Version (No Document Features)
+# app.py - Chat & Search Only (No Workspace, No Terminal, No IDE)
 
 import os
 import json
 import re
 import uuid
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import requests
 from datetime import datetime
 import base64
-from docs import DocumentProcessor
-import io
 
 # Import AI functions from models.py
 from models import (
@@ -25,9 +23,6 @@ from models import (
     call_pollinations_ai
 )
 
-# Import workspace functions from workspace.py
-from workspace import register_workspace_routes
-
 # Import free image generator
 from image import FreeImageGenerator
 
@@ -36,16 +31,10 @@ from media import media_handler
 
 from vision import get_vision_model
 
-# Import terminal blueprint
-from terminal import create_terminal_blueprint
-
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 CORS(app)
-
-# Register terminal routes
-app.register_blueprint(create_terminal_blueprint(app))
 
 # Ensure directories exist
 os.makedirs('generated_images', exist_ok=True)
@@ -62,19 +51,14 @@ ALLOWED_EXTENSIONS = {
     'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
     'mp3', 'wav', 'ogg', 'flac', 'm4a',
     'mp4', 'avi', 'mov', 'mkv', 'webm',
-    'zip', 'rar', '7z', 'tar', 'gz', 'bz2',
-    'java', 'c', 'cpp', 'h', 'rb', 'php', 'go', 'rs', 'swift', 'kt'
+    'zip', 'rar', '7z', 'tar', 'gz', 'bz2'
 }
 
 def sanitize_filename(text):
-    """Sanitize text to be safe for use in filenames"""
     if not text:
         return "New Chat"
     text = ''.join(char for char in text if char.isprintable() and char not in '\n\r\t')
-    replacements = {
-        '/': '-', '\\': '-', ':': '-', '*': '-', '?': '-',
-        '"': "'", '<': '-', '>': '-', '|': '-'
-    }
+    replacements = {'/': '-', '\\': '-', ':': '-', '*': '-', '?': '-', '"': "'", '<': '-', '>': '-', '|': '-'}
     for old, new in replacements.items():
         text = text.replace(old, new)
     text = text.strip()[:100]
@@ -110,9 +94,7 @@ def save_conversations(conversations):
 conversations = load_conversations()
 
 def extract_text_from_file(file_content, filename):
-    """Extract text from uploaded files"""
     try:
-        # Simple text extraction for common file types
         ext = filename.split('.')[-1].lower() if '.' in filename else ''
         
         if ext in ['txt', 'md', 'py', 'js', 'html', 'css', 'json', 'xml', 'csv']:
@@ -121,60 +103,31 @@ def extract_text_from_file(file_content, filename):
             except:
                 return file_content.decode('latin-1', errors='replace')
         else:
-            # For binary files, just note the type
             return f"[Binary file: {filename} - {len(file_content)} bytes]"
-        
     except Exception as e:
-        print(f"Error extracting text: {e}")
         return f"[Error extracting from {filename}: {str(e)}]"
 
 def is_image_generation_request(message):
-    """Detect if a user message is requesting image generation"""
     if not message:
         return False
     
     message_lower = message.lower()
     
-    analysis_keywords = [
-        'analyze', 'analyse', 'what is', 'what\'s', 'tell me about', 
-        'describe', 'explain', 'read this', 'look at', 'examine'
-    ]
-    
+    analysis_keywords = ['analyze', 'analyse', 'what is', 'what\'s', 'tell me about', 'describe', 'explain']
     for keyword in analysis_keywords:
         if keyword in message_lower:
             return False
     
-    image_keywords = [
-        'generate image', 'create image', 'make image', 'draw image',
-        'generate picture', 'create picture', 'make picture',
-        'generate art', 'create art',
-        'ai image', 'ai art',
-        'image of', 'picture of',
-        'draw me', 'generate me', 'create me'
-    ]
-    
+    image_keywords = ['generate image', 'create image', 'make image', 'draw image', 'image of', 'picture of']
     for keyword in image_keywords:
         if keyword in message_lower:
-            return True
-    
-    words = message_lower.split()
-    if len(words) <= 5 and any(word in ['image', 'picture', 'photo', 'art'] for word in words):
-        if not any(word in message_lower for word in ['this', 'the', 'that', 'attached']):
             return True
     
     return False
 
 def extract_image_prompt(message):
-    """Extract the actual image prompt from the message"""
     message_lower = message.lower()
-    
-    prefixes = [
-        'generate image of', 'create image of', 'make image of', 'draw image of',
-        'generate picture of', 'create picture of', 'make picture of',
-        'image of', 'picture of',
-        'draw me', 'generate me', 'create me',
-        'generate an image of', 'create an image of'
-    ]
+    prefixes = ['generate image of', 'create image of', 'make image of', 'image of', 'picture of']
     
     prompt = message.strip()
     for prefix in prefixes:
@@ -183,10 +136,8 @@ def extract_image_prompt(message):
             break
     
     prompt = prompt.strip('.,!?;:')
-    
     if len(prompt) < 3:
         prompt = message.strip()
-    
     return prompt
 
 @app.route('/')
@@ -226,9 +177,8 @@ def chat():
 
     # Handle pending attachments
     if 'pending_attachments' in conv and conv['pending_attachments']:
-        if message:
-            if not attached_files:
-                attached_files = []
+        if message and not attached_files:
+            attached_files = []
         for pending_file in conv['pending_attachments']:
             attached_files.append({
                 'name': pending_file['name'],
@@ -240,7 +190,6 @@ def chat():
     # Handle regeneration
     if regenerate and regenerate_from is not None:
         msg_key = str(regenerate_from)
-
         if msg_key not in conv['versions']:
             conv['versions'][msg_key] = []
         
@@ -275,7 +224,6 @@ def chat():
                     indices_to_remove.append(idx_key)
             except ValueError:
                 continue
-        
         for idx_key in indices_to_remove:
             del conv['current_version_index'][idx_key]
 
@@ -294,7 +242,6 @@ def chat():
         ai_message = message + ''.join(file_contexts)
         file_list = ", ".join(file_names)
         display_message = message + (f"\n\n📎 **Attached files:** {file_list}" if message else f"📎 **Attached files:** {file_list}")
-        
         full_message = display_message
     else:
         ai_message = message
@@ -343,93 +290,60 @@ def chat():
             image_prompt = full_message[6:].strip()
         
         if not image_prompt:
-            response_data['response'] = "Please provide an image description. Example: `/generate a beautiful sunset over mountains`"
+            response_data['response'] = "Please provide an image description. Example: `/generate a beautiful sunset`"
         else:
             try:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"ai_gen_{timestamp}.png"
-                
-                try:
-                    image_path = image_generator.generate_huggingface(image_prompt, output_name=filename)
-                except Exception as e:
-                    print(f"Hugging Face generation failed: {e}")
-                    raise e
-                
+                image_path = image_generator.generate_huggingface(image_prompt, output_name=filename)
                 image_filename = os.path.basename(image_path)
                 
                 image_html = f'''
 <div style="text-align: center; margin: 15px 0;">
     <img src="/api/generated_image/{image_filename}" 
          alt="Generated: {image_prompt}" 
-         style="max-width: 100%; max-height: 400px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"
+         style="max-width: 100%; max-height: 400px; border-radius: 12px; cursor: pointer;"
          onclick="window.open('/api/generated_image/{image_filename}', '_blank')">
-    <div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
-        <i class="fas fa-expand"></i> Click to view full size
-    </div>
-</div>
-'''
+</div>'''
                 response_data['response'] = f"🎨 **Generated Image: \"{image_prompt}\"**\n\n{image_html}"
                 response_data['is_image_generation'] = True
-                response_data['image_path'] = image_path
-                response_data['image_prompt'] = image_prompt
-                
             except Exception as e:
-                print(f"Image generation error: {e}")
-                response_data['response'] = f"❌ **Image generation failed!**\n\nError: {str(e)}\n\nPlease try a different prompt."
+                response_data['response'] = f"❌ **Image generation failed!**\n\nError: {str(e)}"
 
     elif full_message.lower().startswith('/help'):
-        response_data['response'] = """**📚 HenAi Commands & Features**
+        response_data['response'] = """**📚 HenAi Commands**
 
-**Commands:**
 • `/search <query>` - Search the web
 • `/extract <url>` - Extract content from a URL
 • `/code <python>` - Execute Python code
-• `/generate <description>` or `/image <description>` - Generate AI images (free!)
+• `/generate <description>` - Generate AI images
 • `/help` - Show this help
 
 **Features:**
-• 📎 File attachments (text, code, images, archives)
-• 💾 Auto-save conversations
-• 🏷️ Auto-titled chats
-• ✏️ Rename chats
-• 🔄 Version history with branching
-• 🎨 Free AI Image Generation
-• 🔍 Unified File Search (Zenodo, GitHub, HuggingFace)"""
-    
+• File attachments (text, code, images)
+• Auto-save conversations
+• Version history with branching
+• Free AI Image Generation"""
+
     elif is_image_generation_request(full_message) and not attached_files:
         image_prompt = extract_image_prompt(full_message)
-        
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"ai_gen_{timestamp}.png"
-            
-            try:
-                image_path = image_generator.generate_huggingface(image_prompt, output_name=filename)
-            except Exception as e:
-                print(f"Hugging Face generation failed: {e}")
-                raise e
-            
+            image_path = image_generator.generate_huggingface(image_prompt, output_name=filename)
             image_filename = os.path.basename(image_path)
             
             image_html = f'''
 <div style="text-align: center; margin: 15px 0;">
     <img src="/api/generated_image/{image_filename}" 
          alt="Generated: {image_prompt}" 
-         style="max-width: 100%; max-height: 400px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"
+         style="max-width: 100%; max-height: 400px; border-radius: 12px; cursor: pointer;"
          onclick="window.open('/api/generated_image/{image_filename}', '_blank')">
-    <div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
-        <i class="fas fa-expand"></i> Click to view full size
-    </div>
-</div>
-'''
+</div>'''
             response_data['response'] = f"🎨 **Here's an image I generated for you:**\n\n{image_html}"
             response_data['is_image_generation'] = True
-            response_data['image_path'] = image_path
-            response_data['image_prompt'] = image_prompt
-            
         except Exception as e:
-            print(f"Image generation error: {e}")
-            response_data['response'] = f"❌ **Image generation failed!**\n\nError: {str(e)}\n\nPlease try a different prompt."
+            response_data['response'] = f"❌ **Image generation failed!**\n\nError: {str(e)}"
 
     else:
         context = []
@@ -451,11 +365,10 @@ def chat():
                 context.append({"role": msg['role'], "content": msg['content']})
 
         is_code_gen = is_code_generation_request(full_message)
-        
         prompt_for_ai = ai_message if 'ai_message' in locals() else full_message
         
         if is_code_gen:
-            prompt_for_ai += "\n\nIMPORTANT: Provide the COMPLETE, FULLY FUNCTIONAL code. Do not abbreviate or use placeholders."
+            prompt_for_ai += "\n\nIMPORTANT: Provide COMPLETE, FULLY FUNCTIONAL code. Do not abbreviate."
 
         ai_response = query_ai_with_fallback(prompt_for_ai, context, is_code_gen)
         response_data['response'] = ai_response
@@ -474,7 +387,6 @@ def chat():
         })
         conv['branch_root'] = None
 
-    new_assistant_index = len(conv['messages'])
     conv['messages'].append({
         'role': 'assistant',
         'content': response_data['response'],
@@ -485,7 +397,6 @@ def chat():
         msg_key = str(regenerate_from)
         if msg_key not in conv['versions']:
             conv['versions'][msg_key] = []
-
         if response_data['response'] not in conv['versions'][msg_key]:
             conv['versions'][msg_key].append(response_data['response'])
             conv['current_version_index'][msg_key] = len(conv['versions'][msg_key]) - 1
@@ -576,8 +487,8 @@ def edit_message():
     is_code_gen = is_code_generation_request(full_content)
     
     if is_code_gen:
-        if not any(phrase in full_content.lower() for phrase in ['summarize', 'explain', 'what is', 'tell me about']):
-            full_content += "\n\nIMPORTANT: Provide the COMPLETE, FULLY FUNCTIONAL code. Do not abbreviate or use placeholders."
+        if not any(phrase in full_content.lower() for phrase in ['summarize', 'explain', 'what is']):
+            full_content += "\n\nIMPORTANT: Provide COMPLETE code. Do not abbreviate."
     
     ai_response = query_ai_with_fallback(full_content, context, is_code_gen)
 
@@ -590,7 +501,6 @@ def edit_message():
     msg_key = str(message_index + 1)
     if msg_key not in conv['versions']:
         conv['versions'][msg_key] = []
-
     if ai_response not in conv['versions'][msg_key]:
         conv['versions'][msg_key].append(ai_response)
         conv['current_version_index'][msg_key] = len(conv['versions'][msg_key]) - 1
@@ -722,7 +632,6 @@ def upload_file():
 
     try:
         text_content = extract_text_from_file(file_content, filename)
-        
         file_extension = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'txt'
         formatted_content = f"\n\n--- FILE: {filename} ({file_extension}) ---\n{text_content}\n--- END FILE: {filename} ---\n\n"
 
@@ -764,12 +673,7 @@ def add_pending_attachment():
     })
     
     conv['last_updated'] = datetime.now().isoformat()
-    
-    try:
-        save_conversations(conversations)
-    except Exception as e:
-        print(f"Error saving: {e}")
-        return jsonify({'error': f'Failed to save attachment: {str(e)}'}), 500
+    save_conversations(conversations)
     
     return jsonify({
         'success': True,
@@ -818,14 +722,7 @@ def attach_to_chat():
     })
     
     conv['last_updated'] = datetime.now().isoformat()
-    
-    try:
-        save_conversations(conversations)
-    except Exception as e:
-        print(f"Error saving: {e}")
-        if 'pending_attachments' in conv and conv['pending_attachments']:
-            conv['pending_attachments'].pop()
-            save_conversations(conversations)
+    save_conversations(conversations)
     
     return jsonify({
         'success': True,
@@ -851,12 +748,6 @@ def get_conversations():
 def get_conversation(conversation_id):
     if conversation_id in conversations:
         conv_data = conversations[conversation_id]
-        
-        messages = conv_data.get('messages', [])
-        for msg in messages:
-            if msg.get('media_data'):
-                msg['media_data'] = msg['media_data']
-        
         return jsonify({
             **conv_data,
             'versions': conv_data.get('versions', {}),
@@ -894,10 +785,6 @@ def remove_pending_attachment():
         return jsonify({'error': 'Attachment not found'}), 404
     
     conv['pending_attachments'].pop(attachment_index)
-    
-    if len(conv['pending_attachments']) == 0:
-        conv['pending_attachments'] = []
-    
     conv['last_updated'] = datetime.now().isoformat()
     save_conversations(conversations)
     
@@ -964,7 +851,6 @@ def regenerate_media():
         return jsonify({'error': 'No query provided'}), 400
     
     result = media_handler.regenerate_with_fallback(query, media_type, current_id, provider)
-    
     return jsonify(result)
 
 @app.route('/api/media/analyze/video', methods=['POST'])
@@ -990,114 +876,36 @@ def analyze_image():
     
     temp_file_path = None
     try:
-        print(f"📥 Downloading image from: {image_url}")
         response = requests.get(image_url, timeout=30, stream=True)
         response.raise_for_status()
-        
         image_content = response.content
         
         import tempfile
-        import re
-        
         ext = image_name.split('.')[-1].lower() if '.' in image_name else 'jpg'
-        if ext not in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp']:
-            ext = 'jpg'
-        
         with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as tmp:
             tmp.write(image_content)
             tmp.flush()
             temp_file_path = tmp.name
         
-        print(f"📁 Image saved to temp file: {temp_file_path}")
-        
-        from vision import get_vision_model
         vision_model = get_vision_model()
-        
-        print("🔍 Analyzing image content with Vision Model...")
         vision_analysis = vision_model.analyze_image(image_content)
-        
-        clean_analysis = ""
         
         if vision_analysis and len(vision_analysis) > 10:
             clean_analysis = vision_analysis
-            print(f"✅ Using Vision Model analysis ({len(clean_analysis)} chars)")
         else:
-            name_without_ext = re.sub(r'\.[^.]+$', '', image_name)
-            clean_name = re.sub(r'[_\-\.]', ' ', name_without_ext)
-            clean_name = re.sub(r'\d+', '', clean_name).strip()
-            if clean_name and len(clean_name) > 3:
-                clean_analysis = f"This image appears to show {clean_name}."
-            else:
-                clean_analysis = "The image has been processed, but no readable text or recognizable content was detected."
-            print("⚠️ Using filename fallback")
+            clean_analysis = "The image has been analyzed."
         
-        metadata_patterns = [
-            r'Photographer:?\s*\S+',
-            r'Photo by\s+\S+',
-            r'Credit:?\s*\S+',
-            r'Source:?\s*\S+',
-            r'Copyright\s+[©]?\s*\S+',
-            r'©\s*\d{4}\s*\S+',
-            r'\[.*?\]',
-            r'\(.*?(credit|courtesy|source).*?\)',
-            r'Image courtesy of\s+\S+',
-            r'Sourced from\s+\S+',
-            r'^\w+:\s*$',
-            r'\*\*Image Analysis:.*?\*\*',
-            r'\*\*AI Analysis:\*\*',
-            r'\*\*OCR Extracted Text Found:\*\*',
-            r'\*\*Note:\*\*',
-            r'\*\*Image Details:\*\*',
-            r'\*\*Final Analysis:\*\*',
-            r'---.*?---',
-        ]
-        
-        for pattern in metadata_patterns:
-            clean_analysis = re.sub(pattern, '', clean_analysis, flags=re.IGNORECASE | re.MULTILINE)
-        
-        clean_analysis = re.sub(r'\*\*([^*]+)\*\*', r'\1', clean_analysis)
-        clean_analysis = re.sub(r'`([^`]+)`', r'\1', clean_analysis)
-        clean_analysis = re.sub(r'#+\s*', '', clean_analysis)
-        clean_analysis = re.sub(r'\s+', ' ', clean_analysis)
-        clean_analysis = re.sub(r'\n{3,}', '\n\n', clean_analysis)
-        
-        if clean_analysis and len(clean_analysis) > 0:
-            clean_analysis = clean_analysis[0].upper() + clean_analysis[1:] if len(clean_analysis) > 1 else clean_analysis.upper()
-        
-        clean_analysis = re.sub(r'\s*[|;:]\s*$', '', clean_analysis)
-        clean_analysis = clean_analysis.strip()
-        
-        if not clean_analysis or len(clean_analysis) < 5:
-            clean_analysis = "The image has been analyzed, but no specific content could be identified."
-        
-        response_data = {
+        return jsonify({
             'success': True,
             'image_url': image_url,
             'image_name': image_name,
             'analysis': clean_analysis
-        }
-        
-        print(f"✅ Analysis complete: {clean_analysis[:100]}...")
-        return jsonify(response_data)
-        
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Failed to download image: {e}")
-        return jsonify({
-            'success': False,
-            'error': f'Failed to download image: {str(e)}'
-        }), 500
+        })
     except Exception as e:
-        print(f"❌ Error analyzing image: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'error': f'Error analyzing image: {str(e)}'
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         if temp_file_path:
             try:
-                import os
                 os.unlink(temp_file_path)
             except:
                 pass
@@ -1127,23 +935,21 @@ def save_media_message():
     
     conv = conversations[conversation_id]
     
-    user_msg = {
+    conv['messages'].append({
         'role': 'user',
         'content': user_message,
         'timestamp': datetime.now().isoformat(),
         'attachments': None
-    }
-    conv['messages'].append(user_msg)
+    })
     
-    assistant_msg = {
+    conv['messages'].append({
         'role': 'assistant',
         'content': assistant_response,
         'timestamp': datetime.now().isoformat(),
         'media_data': media_data,
         'is_media_result': True,
         'is_error': is_error
-    }
-    conv['messages'].append(assistant_msg)
+    })
     
     if conv['title'] == 'New Chat' and user_message:
         raw_title = generate_chat_title(conv['messages'])
@@ -1157,9 +963,6 @@ def save_media_message():
         'conversation_id': conversation_id,
         'title': conv['title']
     })
-
-# Register workspace routes
-register_workspace_routes(app)
 
 @app.route('/api/generated_image/<filename>')
 def serve_generated_image(filename):
@@ -1176,11 +979,7 @@ if __name__ == '__main__':
     print("🐔 HenAi Server Started! (Chat & Search Mode)")
     print("="*60)
     print("📍 Visit: http://localhost:5000")
-    print("🤖 AI Mode: Hybrid - Pollinations.ai for conversations, OpenRouter for code")
-    print("🖼️ Media Search: Images & Videos from Pixabay and Pexels")
-    print("🎬 Video Analysis: TwelveLabs API")
     print("💡 Commands: /search, /extract, /code, /image, /help")
-    print("📋 Features: Copy, Edit, Regenerate, Version Toggle, Rename")
     print("📎 File Support: Text, Code, Images, Archives")
     print("="*60 + "\n")
     app.run(debug=True, host='0.0.0.0', port=5001)
