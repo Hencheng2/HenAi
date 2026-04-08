@@ -7,6 +7,7 @@ blinker==1.9.0
 click==8.3.1
 itsdangerous==2.2.0
 MarkupSafe==3.0.3
+torch
 
 # HTTP & API
 requests==2.31.0
