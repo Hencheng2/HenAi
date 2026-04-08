@@ -1,38 +1,4 @@
-# Core Web Framework
 Flask==3.0.0
 Flask-Cors==4.0.0
-Jinja2==3.1.6
-Werkzeug==3.1.7
-blinker==1.9.0
-click==8.3.1
-itsdangerous==2.2.0
-MarkupSafe==3.0.3
-torch
-
-# HTTP & API
 requests==2.31.0
-certifi==2026.2.25
-charset-normalizer
-idna==3.11
-urllib3
-
-# Image Processing (for chat image analysis)
-Pillow>=10.0.0
-
-# Utilities
-python-dotenv==1.0.0
-six==1.17.0
-colorama==0.4.6
 gunicorn==21.2.0
-packaging==26.0
-typing_extensions==4.15.0
-
-# Process Management (for terminal)
-prompt-toolkit
-psutil
-pathlib2
-
-# Archive Extraction (for search file mode)
-patool>=1.12
-py7zr
-gunicorn
