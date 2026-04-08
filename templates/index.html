@@ -56,7 +56,7 @@
             position: relative;
         }
 
-        /* Sidebar - Hidden on mobile by default */
+        /* Sidebar */
         .sidebar {
             width: 280px;
             background: var(--bg-primary);
@@ -77,7 +77,6 @@
             transform: translateX(0);
         }
 
-        /* Desktop sidebar */
         @media (min-width: 768px) {
             .sidebar {
                 position: relative;
@@ -131,6 +130,11 @@
         .new-chat-btn.active-mode {
             background: var(--accent-glow);
             border-color: var(--accent);
+        }
+
+        /* Search Files Button */
+        #searchFilesBtn {
+            margin: 0 16px 8px 16px;
         }
 
         .chats-section {
@@ -242,6 +246,26 @@
             flex-wrap: wrap;
         }
 
+        .panel-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-toggle:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
         .menu-toggle {
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
@@ -250,13 +274,16 @@
             cursor: pointer;
             color: var(--text-secondary);
             font-size: 1rem;
-            display: flex;
+            display: none;
             align-items: center;
             gap: 8px;
         }
 
-        @media (min-width: 768px) {
+        @media (max-width: 768px) {
             .menu-toggle {
+                display: flex;
+            }
+            .panel-toggle span {
                 display: none;
             }
         }
@@ -594,6 +621,49 @@
             color: var(--accent);
         }
 
+        /* Media Checkbox Container */
+        .media-checkbox-container {
+            max-width: 900px;
+            margin: 8px auto 0;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 8px 0;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .media-checkbox-container label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .media-checkbox-container input {
+            cursor: pointer;
+        }
+
+        #mediaSearchStatus {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+
+        @media (max-width: 640px) {
+            .media-checkbox-container {
+                justify-content: center;
+            }
+            #mediaSearchStatus {
+                margin-left: 0;
+                width: 100%;
+                text-align: center;
+            }
+        }
+
         .scroll-to-bottom-btn {
             position: fixed;
             bottom: 100px;
@@ -609,7 +679,7 @@
             justify-content: center;
             color: white;
             font-size: 1rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             z-index: 90;
         }
 
@@ -676,29 +746,15 @@
             border: 1px solid var(--border);
             z-index: 200;
             font-size: 0.875rem;
-            white-space: nowrap;
-            max-width: 90%;
-            white-space: normal;
             text-align: center;
         }
 
         @media (max-width: 640px) {
             .toast {
-                white-space: normal;
                 font-size: 0.75rem;
                 padding: 8px 16px;
-            }
-        }
-
-        /* Mobile bottom padding for input */
-        @media (max-width: 640px) {
-            .input-area {
-                padding-bottom: 12px;
-            }
-            
-            .send-btn {
-                padding: 12px 16px;
-                min-width: 60px;
+                white-space: normal;
+                max-width: 90%;
             }
         }
 
@@ -731,7 +787,6 @@
             }
         }
 
-        /* Overlay for mobile sidebar */
         .sidebar-overlay {
             position: fixed;
             top: 0;
@@ -824,6 +879,19 @@
             font-size: 0.85em;
             color: var(--accent);
         }
+
+        /* Search mode indicator */
+        .search-mode-indicator {
+            background: var(--accent-glow);
+            border: 1px solid var(--accent);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
     </style>
 </head>
 <body>
@@ -839,21 +907,32 @@
             <span>+</span> New Conversation
         </div>
 
+        <!-- Search Files Button - PRESERVED -->
+        <div class="new-chat-btn" id="searchFilesBtn">
+            <span>🔍</span> Search Files
+        </div>
+
         <div class="chats-section">
             <div id="chatList"></div>
         </div>
         
         <div class="sidebar-footer" id="settingsFooter">
-            <i class="fas fa-info-circle"></i> About
+            <i class="fas fa-info-circle"></i> Settings & Help
         </div>
     </aside>
 
     <div class="main-area">
         <div class="top-bar">
-            <button class="menu-toggle" id="menuToggleBtn">
-                <i class="fas fa-bars"></i>
-                <span>Menu</span>
-            </button>
+            <div style="display: flex; gap: 8px;">
+                <button class="menu-toggle" id="menuToggleBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <!-- Panel Toggle Button - PRESERVED -->
+                <button class="panel-toggle" id="panelToggleBtn">
+                    <i class="fas fa-columns"></i>
+                    <span>Toggle Panel</span>
+                </button>
+            </div>
             <div class="status-badge">HenAi Ready</div>
         </div>
 
@@ -872,6 +951,20 @@
                 <button class="send-btn" id="sendBtn">Send</button>
             </div>
             <div class="file-attachments-area" id="attachmentsArea"></div>
+            
+            <!-- Media Checkboxes - PRESERVED -->
+            <div class="media-checkbox-container">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="enableImageSearch"> 
+                    <i class="fas fa-image" style="color: var(--accent);"></i> Find Image
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="enableVideoSearch"> 
+                    <i class="fas fa-video" style="color: var(--accent);"></i> Find Video
+                </label>
+                <div id="mediaSearchStatus" style="font-size: 0.7rem; color: var(--text-muted);"></div>
+            </div>
+            
             <input type="file" id="fileInput" style="display: none;" multiple>
         </div>
     </div>
@@ -897,10 +990,15 @@
     let pendingAttachments = [];
     let isSending = false;
     let codeMirrorInstances = {};
-
-    // Mobile sidebar toggle
+    let isUnifiedSearchMode = false;
     let sidebarOpen = false;
+    let sidebarCollapsed = false;
 
+    // Media search checkboxes
+    let shouldSearchImage = false;
+    let shouldSearchVideo = false;
+
+    // Toggle sidebar
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
@@ -921,10 +1019,311 @@
         sidebarOpen = false;
     }
 
+    // Toggle main sidebar (panel toggle)
+    function toggleMainSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebarCollapsed = !sidebarCollapsed;
+        if (sidebarCollapsed) {
+            sidebar.style.display = 'none';
+        } else {
+            sidebar.style.display = 'flex';
+        }
+        localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+    }
+
+    // Unified search mode
+    function enterUnifiedSearchMode() {
+        isUnifiedSearchMode = true;
+        const searchBtn = document.getElementById('searchFilesBtn');
+        if (searchBtn) searchBtn.classList.add('active-mode');
+        
+        currentConversationId = null;
+        pendingAttachments = [];
+        updateAttachmentsUI();
+        isSending = false;
+        
+        const chatContainer = document.getElementById('chatContainer');
+        chatContainer.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <div class="empty-state-title">File Search</div>
+                <div class="empty-state-text">Enter your search query to find and download files directly.</div>
+            </div>
+        `;
+        
+        const messageInput = document.getElementById('messageInput');
+        messageInput.placeholder = 'Search files...';
+        messageInput.value = '';
+        
+        showToast('Unified search mode activated. Search across Zenodo, GitHub, and HuggingFace.');
+    }
+
+    function exitUnifiedSearchMode() {
+        isUnifiedSearchMode = false;
+        const searchBtn = document.getElementById('searchFilesBtn');
+        if (searchBtn) searchBtn.classList.remove('active-mode');
+        
+        const messageInput = document.getElementById('messageInput');
+        messageInput.placeholder = 'Message HenAi';
+        
+        if (currentConversationId) {
+            loadConversation(currentConversationId);
+        } else {
+            document.getElementById('chatContainer').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">✨</div>
+                    <div class="empty-state-title">Start a conversation</div>
+                    <div class="empty-state-text">Type your message below to begin chatting with HenAi</div>
+                </div>
+            `;
+        }
+        showToast('Exited unified search mode.');
+    }
+
+    async function searchUnifiedArchives(query, page = 1) {
+        const encodedQuery = encodeURIComponent(query);
+        let allResults = [];
+        let totalHits = 0;
+        
+        // Zenodo search
+        try {
+            const zenodoParams = new URLSearchParams({ q: query, page: page, size: 5, sort: 'mostrecent' });
+            const zenodoResponse = await fetch(`https://zenodo.org/api/records?${zenodoParams}`);
+            const zenodoData = await zenodoResponse.json();
+            
+            const zenodoResults = (zenodoData.hits?.hits || []).map(record => {
+                const metadata = record.metadata;
+                const files = (record.files || []).map(file => ({
+                    name: file.key,
+                    downloadUrl: file.links?.self || `https://zenodo.org/records/${record.id}/files/${file.key}`,
+                    size: file.size || 0,
+                    type: 'file'
+                }));
+                
+                return {
+                    id: record.id,
+                    title: metadata.title || 'Untitled',
+                    description: metadata.description || 'No description available',
+                    source: 'zenodo',
+                    sourceIcon: '📚',
+                    creators: metadata.creators ? metadata.creators.filter(c => c.name).map(c => c.name).join(', ') : 'Unknown',
+                    files: files,
+                    type: 'record'
+                };
+            });
+            
+            allResults.push(...zenodoResults);
+            totalHits += zenodoData.hits?.total || 0;
+        } catch (error) {
+            console.error('Zenodo search error:', error);
+        }
+        
+        // GitHub search
+        try {
+            const githubResponse = await fetch(`https://api.github.com/search/repositories?q=${encodedQuery}&page=${page}&per_page=5&sort=stars`);
+            const githubData = await githubResponse.json();
+            
+            const githubResults = (githubData.items || []).map(item => ({
+                id: item.full_name,
+                title: item.name,
+                description: item.description || '',
+                source: 'github',
+                sourceIcon: '💻',
+                stars: item.stargazers_count,
+                type: 'repository',
+                files: [{
+                    name: item.name,
+                    downloadUrl: item.html_url + '/archive/refs/heads/main.zip',
+                    size: item.size || 0,
+                    type: 'repository',
+                    isRepo: true,
+                    repoId: item.full_name,
+                    repoDescription: item.description
+                }]
+            }));
+            
+            allResults.push(...githubResults);
+            totalHits += githubData.total_count || 0;
+        } catch (error) {
+            console.error('GitHub search error:', error);
+        }
+        
+        // HuggingFace search
+        try {
+            const hfResponse = await fetch(`https://huggingface.co/api/models?search=${encodedQuery}&limit=5`);
+            const hfData = await hfResponse.json();
+            
+            const hfResults = (Array.isArray(hfData) ? hfData : []).map(item => ({
+                id: item.id,
+                title: item.modelId || item.id,
+                description: item.description || `Downloads: ${item.downloads || 0} | Likes: ${item.likes || 0}`,
+                source: 'huggingface',
+                sourceIcon: '🤗',
+                type: 'model',
+                files: [{
+                    name: item.modelId || item.id,
+                    downloadUrl: `https://huggingface.co/${item.id}`,
+                    size: 0,
+                    type: 'model'
+                }]
+            }));
+            
+            allResults.push(...hfResults);
+            totalHits += hfResults.length;
+        } catch (error) {
+            console.error('HuggingFace search error:', error);
+        }
+        
+        return { results: allResults, total: totalHits };
+    }
+
+    function displayUnifiedResults(results, total, query, page) {
+        const chatContainer = document.getElementById('chatContainer');
+        
+        if (!results || results.length === 0) {
+            chatContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <div class="empty-state-title">No results found</div>
+                    <div class="empty-state-text">Try a different search term for "${escapeHtml(query)}"</div>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = `
+            <div style="margin-bottom: 20px;">
+                <div class="search-mode-indicator">
+                    🔍 Unified Search: "${escapeHtml(query)}"
+                    <button onclick="exitUnifiedSearchMode()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: 8px;">✕</button>
+                </div>
+                <div class="archive-stats" style="font-size:0.8rem;color:var(--text-muted);margin-top:8px;">Found ${total.toLocaleString()} results across all archives (Page ${page})</div>
+            </div>
+        `;
+        
+        for (const result of results) {
+            const files = result.files || [];
+            html += `
+                <div class="code-search-result" style="background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+                    <div class="code-search-title" style="font-size:1.1rem;font-weight:600;color:var(--accent);margin-bottom:8px;">
+                        ${result.sourceIcon} ${escapeHtml(result.title)} <span style="font-size:0.7rem;color:var(--text-muted);">[${result.source.toUpperCase()}]</span>
+                    </div>
+                    ${result.creators ? `<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><i class="fas fa-user"></i> ${escapeHtml(result.creators)}</div>` : ''}
+                    ${result.stars ? `<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;"><i class="fas fa-star"></i> ⭐ ${result.stars.toLocaleString()} stars</div>` : ''}
+                    <div style="font-size:0.9rem;color:var(--text-primary);margin-bottom:12px;">${escapeHtml(result.description)}</div>
+                    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+                        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;"><i class="fas fa-paperclip"></i> Files (${files.length}):</div>
+            `;
+            
+            for (const file of files) {
+                html += `
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <i class="fas ${file.isRepo ? 'fa-folder' : 'fa-file'}"></i>
+                            <span style="font-family:monospace;font-size:0.85rem;">${escapeHtml(file.name)}</span>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="archive-download-btn" onclick="window.open('${file.downloadUrl}', '_blank')" style="background:var(--accent);border:none;padding:6px 12px;border-radius:6px;color:white;cursor:pointer;">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button class="archive-download-to-chat-btn" onclick="showChatSelectionModal('${file.downloadUrl}', '${escapeHtml(file.name)}', true)" style="background:var(--bg-tertiary);border:1px solid var(--accent);padding:6px 12px;border-radius:6px;color:var(--accent);cursor:pointer;">
+                                <i class="fas fa-comment-dots"></i> Attach to Chat
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += `</div></div>`;
+        }
+        
+        chatContainer.innerHTML = html;
+    }
+
+    window.showChatSelectionModal = async function(fileUrl, filename, isZip) {
+        const response = await fetch('/api/conversations');
+        const conversations = await response.json();
+        
+        const modal = document.createElement('div');
+        modal.className = 'chat-selection-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:2000;';
+        modal.innerHTML = `
+            <div style="background:var(--bg-secondary);border-radius:16px;width:400px;max-width:90%;max-height:80vh;display:flex;flex-direction:column;border:1px solid var(--border);">
+                <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                    <h3 style="font-size:1.1rem;">Attach to Conversation</h3>
+                    <button class="close-modal-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;">✕</button>
+                </div>
+                <div style="padding:12px 20px;border-bottom:1px solid var(--border);">
+                    <input type="text" placeholder="Search conversations..." id="chatSearchInput" style="width:100%;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);">
+                </div>
+                <div style="flex:1;overflow-y:auto;padding:8px;" id="chatListModal">
+                    <div class="chat-option new-chat-option" data-chat-id="new" style="padding:12px;margin:4px 0;border-radius:8px;cursor:pointer;background:var(--accent-glow);border:1px solid var(--accent);">
+                        <div style="font-weight:500;">✨ New Conversation</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);">Create a new conversation</div>
+                    </div>
+                    ${conversations.map(conv => `
+                        <div class="chat-option" data-chat-id="${conv.id}" style="padding:12px;margin:4px 0;border-radius:8px;cursor:pointer;border:1px solid transparent;">
+                            <div style="font-weight:500;">${escapeHtml(conv.title)}</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">${conv.message_count} messages</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        modal.querySelectorAll('.chat-option').forEach(opt => {
+            opt.addEventListener('click', async () => {
+                const chatId = opt.dataset.chatId;
+                modal.remove();
+                
+                let targetChatId = chatId;
+                if (chatId === 'new') {
+                    const newChatRes = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: '', attached_files: [] }) });
+                    const newChatData = await newChatRes.json();
+                    targetChatId = newChatData.conversation_id;
+                }
+                
+                const fileRes = await fetch(fileUrl);
+                const blob = await fileRes.blob();
+                let textContent = '';
+                try {
+                    textContent = await blob.text();
+                } catch(e) {
+                    textContent = `[Binary file: ${filename}]`;
+                }
+                
+                const formattedContent = `\n\n--- FILE: ${filename} ---\n${textContent}\n--- END FILE: ${filename} ---\n\n`;
+                
+                await fetch('/api/add_pending_attachment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ conversation_id: targetChatId, filename: filename, content: formattedContent })
+                });
+                
+                await loadConversation(targetChatId);
+                showToast(`✓ "${filename}" attached!`);
+                if (isUnifiedSearchMode) exitUnifiedSearchMode();
+            });
+        });
+        
+        modal.querySelector('.close-modal-btn').addEventListener('click', () => modal.remove());
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        
+        const searchInput = modal.querySelector('#chatSearchInput');
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            modal.querySelectorAll('.chat-option').forEach(opt => {
+                const title = opt.querySelector('div:first-child')?.textContent.toLowerCase();
+                opt.style.display = title?.includes(term) || opt.dataset.chatId === 'new' ? 'block' : 'none';
+            });
+        });
+    };
+
     function showToast(message) {
         const existing = document.querySelector('.toast');
         if (existing) existing.remove();
-
         const toast = document.createElement('div');
         toast.className = 'toast';
         toast.textContent = message;
@@ -939,85 +1338,27 @@
         return div.innerHTML;
     }
 
-    function getFileExtension(language) {
-        const extMap = {
-            'python': 'py', 'javascript': 'js', 'html': 'html', 'css': 'css',
-            'sql': 'sql', 'json': 'json', 'plaintext': 'txt'
-        };
-        return extMap[language] || 'txt';
-    }
-
-    function detectCodeLanguage(text) {
-        if (!text || typeof text !== 'string') return null;
-        
-        const codeIndicators = {
-            python: ['def ', 'import ', 'from ', 'class ', 'print(', 'try:', 'except:'],
-            javascript: ['function', 'const ', 'let ', 'var ', '=>', 'console.log'],
-            html: ['<div', '<span', '<p>', '<a ', '<!DOCTYPE', '<html'],
-            css: ['{', '}', ':', ';', 'margin:', 'padding:', 'color:'],
-        };
-        
-        for (const [lang, indicators] of Object.entries(codeIndicators)) {
-            let matchCount = 0;
-            for (const indicator of indicators) {
-                if (text.includes(indicator)) matchCount++;
-                if (matchCount >= 2) return lang;
-            }
-        }
-        return null;
-    }
-
     function getCodeMirrorMode(language) {
-        const modeMap = {
-            'python': 'python', 'html': 'htmlmixed', 'css': 'css',
-            'javascript': 'javascript', 'json': 'application/json'
-        };
+        const modeMap = { 'python': 'python', 'html': 'htmlmixed', 'css': 'css', 'javascript': 'javascript', 'json': 'application/json' };
         return modeMap[language] || 'text/plain';
     }
 
     function createCodeBlock(code, language, blockId) {
-        const lang = language || detectCodeLanguage(code) || 'plaintext';
+        const lang = language || 'plaintext';
         const mode = getCodeMirrorMode(lang);
-        
         const wrapper = document.createElement('div');
         wrapper.className = 'code-block-wrapper';
         wrapper.id = blockId;
         
         const header = document.createElement('div');
         header.className = 'code-block-header';
-        
-        const langLabel = document.createElement('span');
-        langLabel.className = 'code-language';
-        langLabel.innerHTML = `<i class="fas fa-code"></i> ${lang.toUpperCase()}`;
-        
-        const actions = document.createElement('div');
-        actions.className = 'code-block-actions';
-        
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'copy-code-btn';
-        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-        copyBtn.setAttribute('data-code', code);
-        copyBtn.onclick = function(e) {
-            e.stopPropagation();
-            copyCodeToClipboard(code, this);
-        };
-        actions.appendChild(copyBtn);
-        
-        header.appendChild(langLabel);
-        header.appendChild(actions);
+        header.innerHTML = `<span class="code-language"><i class="fas fa-code"></i> ${lang.toUpperCase()}</span>
+            <div class="code-block-actions"><button class="copy-code-btn" data-code="${escapeHtml(code)}"><i class="fas fa-copy"></i> Copy</button></div>`;
         
         const codeContent = document.createElement('div');
         codeContent.className = 'code-content';
-        
-        const textarea = document.createElement('textarea');
-        textarea.style.display = 'none';
-        textarea.value = code;
-        
         const editorDiv = document.createElement('div');
-        
-        codeContent.appendChild(textarea);
         codeContent.appendChild(editorDiv);
-        
         wrapper.appendChild(header);
         wrapper.appendChild(codeContent);
         
@@ -1032,42 +1373,25 @@
                 viewportMargin: Infinity
             });
             const lineCount = code.split('\n').length;
-            const height = Math.min(Math.max(lineCount * 20, 100), 400);
-            editor.setSize(null, height + 'px');
+            editor.setSize(null, Math.min(Math.max(lineCount * 20, 100), 400) + 'px');
             codeMirrorInstances[blockId] = editor;
         }, 0);
+        
+        wrapper.querySelector('.copy-code-btn').onclick = (e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(code).then(() => showToast('Code copied!'));
+        };
         
         return wrapper;
     }
 
-    function copyCodeToClipboard(code, buttonElement) {
-        if (!code) {
-            showToast('No code to copy');
-            return;
-        }
-        
-        navigator.clipboard.writeText(code).then(() => {
-            showToast('Code copied!');
-            const originalHtml = buttonElement.innerHTML;
-            buttonElement.innerHTML = '<i class="fas fa-check"></i> Copied!';
-            setTimeout(() => {
-                buttonElement.innerHTML = originalHtml;
-            }, 2000);
-        }).catch(() => {
-            showToast('Failed to copy');
-        });
-    }
-
     function formatMessageText(content, container, isUserMessage = false) {
         if (!content) return;
-        
         const messageTextDiv = document.createElement('div');
         messageTextDiv.className = 'message-text';
         
         if (isUserMessage) {
-            const textPara = document.createElement('p');
-            textPara.textContent = content;
-            messageTextDiv.appendChild(textPara);
+            messageTextDiv.innerHTML = `<p>${escapeHtml(content)}</p>`;
             container.appendChild(messageTextDiv);
             return;
         }
@@ -1080,134 +1404,78 @@
         while ((match = codeBlockRegex.exec(content)) !== null) {
             if (match.index > lastIndex) {
                 const textSegment = content.substring(lastIndex, match.index);
-                if (textSegment.trim()) {
-                    segments.push({ type: 'text', content: textSegment });
-                }
+                if (textSegment.trim()) segments.push({ type: 'text', content: textSegment });
             }
             segments.push({ type: 'code', language: match[1], code: match[2] });
             lastIndex = match.index + match[0].length;
         }
-        
-        if (lastIndex < content.length) {
-            const textSegment = content.substring(lastIndex);
-            if (textSegment.trim()) {
-                segments.push({ type: 'text', content: textSegment });
-            }
+        if (lastIndex < content.length && content.substring(lastIndex).trim()) {
+            segments.push({ type: 'text', content: content.substring(lastIndex) });
         }
         
         if (segments.length === 0) {
-            const lines = content.split('\n');
-            for (const line of lines) {
-                if (line.trim()) {
-                    const p = document.createElement('p');
-                    p.textContent = line;
-                    messageTextDiv.appendChild(p);
-                } else {
-                    const spacer = document.createElement('div');
-                    spacer.style.height = '8px';
-                    messageTextDiv.appendChild(spacer);
-                }
-            }
+            content.split('\n').forEach(line => {
+                if (line.trim()) messageTextDiv.appendChild(document.createElement('p')).textContent = line;
+                else messageTextDiv.appendChild(document.createElement('div')).style.height = '8px';
+            });
         } else {
-            for (const segment of segments) {
+            segments.forEach(segment => {
                 if (segment.type === 'text') {
-                    const lines = segment.content.split('\n');
-                    for (const line of lines) {
-                        if (line.trim()) {
-                            const p = document.createElement('p');
-                            p.textContent = line;
-                            messageTextDiv.appendChild(p);
-                        } else {
-                            const spacer = document.createElement('div');
-                            spacer.style.height = '8px';
-                            messageTextDiv.appendChild(spacer);
-                        }
-                    }
-                } else if (segment.type === 'code') {
+                    segment.content.split('\n').forEach(line => {
+                        if (line.trim()) messageTextDiv.appendChild(document.createElement('p')).textContent = line;
+                        else messageTextDiv.appendChild(document.createElement('div')).style.height = '8px';
+                    });
+                } else {
                     const blockId = 'code-block-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-                    const codeElement = createCodeBlock(segment.code, segment.language, blockId);
-                    messageTextDiv.appendChild(codeElement);
+                    messageTextDiv.appendChild(createCodeBlock(segment.code, segment.language, blockId));
                 }
-            }
+            });
         }
-        
         container.appendChild(messageTextDiv);
     }
 
     function formatMessageHTML(role, content, index, convId, attachments = null) {
-        const msgKey = index.toString();
-        const versions = (currentVersions[convId] && currentVersions[convId][msgKey]) || [];
+        const versions = (currentVersions[convId] && currentVersions[convId][index.toString()]) || [];
         const hasVersions = versions.length > 1;
-        
         let versionControls = '';
+        
         if (hasVersions && role === 'assistant') {
-            const totalVersions = versions.length;
-            let currentVersionIndex = 0;
-            
-            if (currentVersionIndices[convId] && currentVersionIndices[convId][msgKey] !== undefined) {
-                currentVersionIndex = currentVersionIndices[convId][msgKey];
-            }
-            const currentVersion = currentVersionIndex + 1;
-            
+            let currentVersionIndex = currentVersionIndices[convId]?.[index.toString()] ?? versions.length - 1;
             versionControls = `
                 <div class="version-controls">
-                    <button class="version-nav-btn" onclick="previousVersion('${convId}', ${index})" ${currentVersion === 1 ? 'disabled' : ''}>
-                        ◀ Prev
-                    </button>
-                    <span class="version-indicator">V${currentVersion}/${totalVersions}</span>
-                    <button class="version-nav-btn" onclick="nextVersion('${convId}', ${index})" ${currentVersion === totalVersions ? 'disabled' : ''}>
-                        Next ▶
-                    </button>
+                    <button class="version-nav-btn" onclick="previousVersion('${convId}', ${index})" ${currentVersionIndex === 0 ? 'disabled' : ''}>◀ Prev</button>
+                    <span class="version-indicator">V${currentVersionIndex + 1}/${versions.length}</span>
+                    <button class="version-nav-btn" onclick="nextVersion('${convId}', ${index})" ${currentVersionIndex === versions.length - 1 ? 'disabled' : ''}>Next ▶</button>
                 </div>
             `;
         }
         
         let attachmentsHtml = '';
-        if (role === 'user' && attachments && attachments.length > 0) {
-            attachmentsHtml = attachments.map(file => `
-                <div style="background: var(--bg-primary); border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-paperclip"></i>
-                    <span style="font-size: 0.75rem;">${escapeHtml(file.name)}</span>
-                </div>
-            `).join('');
+        if (role === 'user' && attachments?.length) {
+            attachmentsHtml = attachments.map(f => `<div style="background:var(--bg-primary);border-radius:6px;padding:6px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;"><i class="fas fa-paperclip"></i><span style="font-size:0.75rem;">${escapeHtml(f.name)}</span></div>`).join('');
         }
         
-        if (role === 'assistant') {
-            return `
-                <div class="message assistant" data-message-index="${index}">
-                    <div class="message-avatar">🤖</div>
-                    <div class="message-content">
-                        <div class="message-header">HenAi</div>
-                        <div id="msg-content-${index}"></div>
-                        <div class="message-actions">
-                            <button class="action-btn" onclick="copyMessage(${index}, this)">Copy</button>
-                            <button class="action-btn" onclick="regenerateMessage(this, ${index})">Regenerate</button>
-                        </div>
-                        ${versionControls}
+        return `
+            <div class="message ${role}" data-message-index="${index}">
+                ${role === 'assistant' ? '<div class="message-avatar">🤖</div>' : ''}
+                <div class="message-content">
+                    <div class="message-header">${role === 'assistant' ? 'HenAi' : 'You'}</div>
+                    ${attachmentsHtml}
+                    <div id="msg-content-${index}"></div>
+                    <div class="message-actions">
+                        <button class="action-btn" onclick="copyMessage(${index}, this)">Copy</button>
+                        ${role === 'assistant' ? `<button class="action-btn" onclick="regenerateMessage(this, ${index})">Regenerate</button>` : `<button class="action-btn" onclick="editMessage(${index}, '${convId}')">Edit</button>`}
                     </div>
+                    ${versionControls}
                 </div>
-            `;
-        } else {
-            return `
-                <div class="message user" data-message-index="${index}">
-                    <div class="message-content">
-                        <div class="message-header">You</div>
-                        ${attachmentsHtml}
-                        <div id="msg-content-${index}"></div>
-                        <div class="message-actions">
-                            <button class="action-btn" onclick="copyMessage(${index}, this)">Copy</button>
-                            <button class="action-btn" onclick="editMessage(${index}, '${convId}')">Edit</button>
-                        </div>
-                    </div>
-                    <div class="message-avatar">👤</div>
-                </div>
-            `;
-        }
+                ${role === 'user' ? '<div class="message-avatar">👤</div>' : ''}
+            </div>
+        `;
     }
 
     function scrollToBottom() {
-        const chatContainer = document.getElementById('chatContainer');
-        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        const container = document.getElementById('chatContainer');
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
 
     async function loadConversations() {
@@ -1216,23 +1484,16 @@
         const chatList = document.getElementById('chatList');
         
         if (conversations.length === 0) {
-            chatList.innerHTML = `<div style="padding: 40px 20px; color: var(--text-muted); text-align: center;">No conversations yet</div>`;
+            chatList.innerHTML = '<div style="padding:40px 20px;color:var(--text-muted);text-align:center;">No conversations yet</div>';
         } else {
             chatList.innerHTML = conversations.map(conv => `
                 <div class="chat-item ${currentConversationId === conv.id ? 'active' : ''}" onclick="loadConversation('${conv.id}')">
-                    <div style="flex: 1;">
-                        <div class="chat-title">${escapeHtml(conv.title)}</div>
-                        <div class="chat-info">${conv.message_count} messages</div>
-                    </div>
-                    <div class="chat-actions">
-                        <div class="dropdown" style="position: relative;">
-                            <button class="chat-action-btn dropdown-toggle" onclick="event.stopPropagation(); toggleChatMenu('${conv.id}')">⋮</button>
-                            <div class="dropdown-menu" id="chat-menu-${conv.id}" style="display: none;">
-                                <button class="dropdown-item" onclick="event.stopPropagation(); renameChat('${conv.id}'); closeAllMenus();">✏️ Rename</button>
-                                <button class="dropdown-item delete-chat" onclick="event.stopPropagation(); deleteConversation('${conv.id}'); closeAllMenus();">🗑️ Delete</button>
-                            </div>
-                        </div>
-                    </div>
+                    <div style="flex:1;"><div class="chat-title">${escapeHtml(conv.title)}</div><div class="chat-info">${conv.message_count} messages</div></div>
+                    <div class="chat-actions"><div class="dropdown"><button class="chat-action-btn dropdown-toggle" onclick="event.stopPropagation(); toggleChatMenu('${conv.id}')">⋮</button>
+                    <div class="dropdown-menu" id="chat-menu-${conv.id}" style="display:none;">
+                        <button class="dropdown-item" onclick="event.stopPropagation(); renameChat('${conv.id}'); closeAllMenus();">✏️ Rename</button>
+                        <button class="dropdown-item delete-chat" onclick="event.stopPropagation(); deleteConversation('${conv.id}'); closeAllMenus();">🗑️ Delete</button>
+                    </div></div></div>
                 </div>
             `).join('');
         }
@@ -1248,21 +1509,17 @@
         document.querySelectorAll('.dropdown-menu').forEach(menu => menu.style.display = 'none');
     }
 
-    document.addEventListener('click', function(event) {
-        if (!event.target.closest('.dropdown-toggle')) closeAllMenus();
-        if (!event.target.closest('.sidebar') && !event.target.closest('.menu-toggle')) {
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.dropdown-toggle')) closeAllMenus();
+        if (!e.target.closest('.sidebar') && !e.target.closest('.menu-toggle') && !e.target.closest('.panel-toggle')) {
             if (window.innerWidth < 768) closeSidebar();
         }
     });
 
     async function renameChat(convId) {
         const newTitle = prompt('Enter new chat title:');
-        if (newTitle && newTitle.trim()) {
-            await fetch('/api/rename_chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ conversation_id: convId, new_title: newTitle.trim() })
-            });
+        if (newTitle?.trim()) {
+            await fetch('/api/rename_chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_id: convId, new_title: newTitle.trim() }) });
             loadConversations();
             showToast('Chat renamed');
         }
@@ -1274,60 +1531,39 @@
         const convData = await response.json();
         const chatContainer = document.getElementById('chatContainer');
         
-        pendingAttachments = [];
+        pendingAttachments = convData.pending_attachments || [];
         updateAttachmentsUI();
         
-        const pendingAttachmentsFromServer = convData.pending_attachments || [];
-        if (pendingAttachmentsFromServer.length > 0) {
-            pendingAttachments = [...pendingAttachmentsFromServer];
-            updateAttachmentsUI();
-        }
-        
         chatContainer.innerHTML = '';
-        
-        if (convData.messages && convData.messages.length > 0) {
-            currentVersions[convId] = JSON.parse(JSON.stringify(convData.versions || {}));
-            currentVersionIndices[convId] = JSON.parse(JSON.stringify(convData.current_version_index || {}));
-            
+        if (convData.messages?.length) {
+            currentVersions[convId] = convData.versions || {};
+            currentVersionIndices[convId] = convData.current_version_index || {};
             for (let i = 0; i < convData.messages.length; i++) {
-                const msg = convData.messages[i];
-                const messageHtml = formatMessageHTML(msg.role, msg.content, i, convId, msg.attachments);
-                chatContainer.innerHTML += messageHtml;
+                chatContainer.innerHTML += formatMessageHTML(convData.messages[i].role, convData.messages[i].content, i, convId, convData.messages[i].attachments);
             }
-            
             setTimeout(() => {
                 for (let i = 0; i < convData.messages.length; i++) {
-                    const msg = convData.messages[i];
-                    const contentContainer = document.getElementById(`msg-content-${i}`);
-                    if (contentContainer) {
-                        formatMessageText(msg.content, contentContainer, msg.role === 'user');
-                    }
+                    const container = document.getElementById(`msg-content-${i}`);
+                    if (container) formatMessageText(convData.messages[i].content, container, convData.messages[i].role === 'user');
                 }
                 scrollToBottom();
             }, 50);
-        } else if (pendingAttachmentsFromServer.length === 0) {
-            chatContainer.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-title">No messages yet</div></div>`;
+        } else {
+            chatContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-title">No messages yet</div></div>';
         }
-        
         loadConversations();
         if (window.innerWidth < 768) closeSidebar();
     }
 
     function updateAttachmentsUI() {
-        const attachmentsArea = document.getElementById('attachmentsArea');
-        const fileBtn = document.getElementById('fileBtn');
-        
+        const area = document.getElementById('attachmentsArea');
+        const btn = document.getElementById('fileBtn');
         if (pendingAttachments.length === 0) {
-            attachmentsArea.innerHTML = '';
-            fileBtn.classList.remove('has-attachments');
+            area.innerHTML = '';
+            btn.classList.remove('has-attachments');
         } else {
-            fileBtn.classList.add('has-attachments');
-            attachmentsArea.innerHTML = pendingAttachments.map((file, idx) => `
-                <div class="attachment-pill">
-                    <span>📎 ${escapeHtml(file.name)}</span>
-                    <button class="remove-attachment" onclick="removeAttachment(${idx})">×</button>
-                </div>
-            `).join('');
+            btn.classList.add('has-attachments');
+            area.innerHTML = pendingAttachments.map((f, i) => `<div class="attachment-pill"><span>📎 ${escapeHtml(f.name)}</span><button class="remove-attachment" onclick="removeAttachment(${i})">×</button></div>`).join('');
         }
     }
 
@@ -1338,11 +1574,11 @@
     };
 
     async function handleFileUpload(files) {
-        for (let file of files) {
+        for (const file of files) {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await fetch('/api/upload', { method: 'POST', body: formData });
-            const data = await response.json();
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await res.json();
             if (data.success) {
                 pendingAttachments.push({ name: data.filename, content: data.content });
                 showToast(`Added: ${data.filename}`);
@@ -1356,9 +1592,86 @@
         
         const input = document.getElementById('messageInput');
         const message = input.value.trim();
+        const imageCheckbox = document.getElementById('enableImageSearch');
+        const videoCheckbox = document.getElementById('enableVideoSearch');
+        const searchImage = imageCheckbox?.checked || false;
+        const searchVideo = videoCheckbox?.checked || false;
+        
+        if (imageCheckbox) imageCheckbox.checked = false;
+        if (videoCheckbox) videoCheckbox.checked = false;
+        const statusDiv = document.getElementById('mediaSearchStatus');
+        if (statusDiv) statusDiv.innerHTML = '';
+        
+        // Unified search mode
+        if (isUnifiedSearchMode) {
+            if (!message) return;
+            input.value = '';
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.innerHTML = `<div class="loading-spinner" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin fa-2x"></i><div>Searching for "${escapeHtml(message)}"...</div></div>`;
+            const { results, total } = await searchUnifiedArchives(message, 1);
+            displayUnifiedResults(results, total, message, 1);
+            return;
+        }
         
         if (!message && pendingAttachments.length === 0) return;
         
+        // Media search mode
+        if (searchImage || searchVideo) {
+            isSending = true;
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '...';
+            
+            pendingAttachments = [];
+            updateAttachmentsUI();
+            if (currentConversationId) {
+                await fetch('/api/clear_pending_attachments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_id: currentConversationId }) });
+            }
+            
+            const chatContainer = document.getElementById('chatContainer');
+            if (chatContainer.querySelector('.empty-state')) chatContainer.innerHTML = '';
+            const userMsgIdx = Date.now();
+            chatContainer.innerHTML += formatMessageHTML('user', message, userMsgIdx, currentConversationId, []);
+            setTimeout(() => formatMessageText(message, document.getElementById(`msg-content-${userMsgIdx}`), true), 0);
+            input.value = '';
+            scrollToBottom();
+            
+            const mediaType = searchImage ? 'image' : 'video';
+            const typingId = 'typing-' + Date.now();
+            chatContainer.innerHTML += `<div class="message assistant" id="${typingId}"><div class="message-avatar">🤖</div><div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div><div style="font-size:0.8rem;margin-top:8px;">Searching for ${mediaType === 'image' ? 'images' : 'videos'} of "${escapeHtml(message)}"...</div></div></div>`;
+            scrollToBottom();
+            
+            try {
+                const endpoint = mediaType === 'image' ? '/api/media/search/image' : '/api/media/search/video';
+                const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: message }) });
+                const result = await res.json();
+                document.getElementById(typingId)?.remove();
+                
+                if (result.success) {
+                    await fetch('/api/save_media_message', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ conversation_id: currentConversationId, user_message: message, assistant_response: `Found ${mediaType}`, media_data: result, is_error: false })
+                    });
+                    await loadConversation(currentConversationId);
+                } else {
+                    await fetch('/api/save_media_message', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ conversation_id: currentConversationId, user_message: message, assistant_response: `No ${mediaType}s found`, media_data: null, is_error: true })
+                    });
+                    await loadConversation(currentConversationId);
+                }
+            } catch (error) {
+                document.getElementById(typingId)?.remove();
+                showToast('Error: ' + error.message);
+            } finally {
+                isSending = false;
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = 'Send';
+            }
+            return;
+        }
+        
+        // Normal chat
         isSending = true;
         const sendBtn = document.getElementById('sendBtn');
         sendBtn.disabled = true;
@@ -1366,57 +1679,27 @@
         
         const chatContainer = document.getElementById('chatContainer');
         if (chatContainer.querySelector('.empty-state')) chatContainer.innerHTML = '';
-        
-        const userMessageIndex = Date.now();
+        const userMsgIdx = Date.now();
         const attachmentsToSend = [...pendingAttachments];
-        
-        const messageHtml = formatMessageHTML('user', message, userMessageIndex, currentConversationId, attachmentsToSend);
-        chatContainer.innerHTML += messageHtml;
-        
-        setTimeout(() => {
-            const contentContainer = document.getElementById(`msg-content-${userMessageIndex}`);
-            if (contentContainer) {
-                formatMessageText(message, contentContainer, true);
-            }
-        }, 0);
-        
+        chatContainer.innerHTML += formatMessageHTML('user', message, userMsgIdx, currentConversationId, attachmentsToSend);
+        setTimeout(() => formatMessageText(message, document.getElementById(`msg-content-${userMsgIdx}`), true), 0);
         input.value = '';
         input.style.height = 'auto';
         
         const typingId = 'typing-' + Date.now();
-        chatContainer.innerHTML += `
-            <div class="message assistant" id="${typingId}">
-                <div class="message-avatar">🤖</div>
-                <div class="message-content">
-                    <div class="typing-indicator"><span></span><span></span><span></span></div>
-                </div>
-            </div>
-        `;
+        chatContainer.innerHTML += `<div class="message assistant" id="${typingId}"><div class="message-avatar">🤖</div><div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div></div>`;
         scrollToBottom();
         
         const attachmentsSent = [...pendingAttachments];
         pendingAttachments = [];
         updateAttachmentsUI();
-        
         if (currentConversationId) {
-            await fetch('/api/clear_pending_attachments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ conversation_id: currentConversationId })
-            });
+            await fetch('/api/clear_pending_attachments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_id: currentConversationId }) });
         }
         
         try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    message: message,
-                    conversation_id: currentConversationId, 
-                    attached_files: attachmentsSent
-                })
-            });
-            const data = await response.json();
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, conversation_id: currentConversationId, attached_files: attachmentsSent }) });
+            const data = await res.json();
             currentConversationId = data.conversation_id;
             document.getElementById(typingId)?.remove();
             await loadConversation(currentConversationId);
@@ -1430,83 +1713,55 @@
         }
     }
 
-    window.copyMessage = async function(messageIndex, buttonElement) {
-        const contentDiv = document.getElementById(`msg-content-${messageIndex}`);
-        if (!contentDiv) return;
-        
-        let textToCopy = '';
+    window.copyMessage = async function(idx, btn) {
+        const container = document.getElementById(`msg-content-${idx}`);
+        if (!container) return;
+        let text = '';
         const walk = (node) => {
-            if (node.nodeType === Node.TEXT_NODE) {
-                textToCopy += node.textContent;
-            } else if (node.nodeType === Node.ELEMENT_NODE) {
-                if (node.tagName === 'BR') {
-                    textToCopy += '\n';
-                } else if (node.classList && node.classList.contains('CodeMirror')) {
+            if (node.nodeType === Node.TEXT_NODE) text += node.textContent;
+            else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.tagName === 'BR') text += '\n';
+                else if (node.classList?.contains('CodeMirror')) {
                     const cm = node.CodeMirror;
-                    if (cm) textToCopy += cm.getValue() + '\n';
-                } else {
-                    for (const child of node.childNodes) walk(child);
-                }
+                    if (cm) text += cm.getValue() + '\n';
+                } else for (const child of node.childNodes) walk(child);
             }
         };
-        walk(contentDiv);
-        
-        if (textToCopy) {
-            await navigator.clipboard.writeText(textToCopy);
+        walk(container);
+        if (text) {
+            await navigator.clipboard.writeText(text);
             showToast('Copied!');
-            if (buttonElement) {
-                const originalHtml = buttonElement.innerHTML;
-                buttonElement.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                setTimeout(() => buttonElement.innerHTML = originalHtml, 2000);
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => btn.innerHTML = orig, 2000);
             }
         }
     };
 
-    window.editMessage = function(messageIndex, convId) {
-        const contentDiv = document.getElementById(`msg-content-${messageIndex}`);
-        const currentText = contentDiv?.textContent || '';
-        
-        const editHtml = `
-            <textarea class="edit-input" rows="3" style="width:100%; background:var(--bg-primary); border:1px solid var(--accent); border-radius:8px; padding:10px; color:var(--text-primary); margin-bottom:8px;">${escapeHtml(currentText)}</textarea>
-            <div class="edit-buttons" style="display:flex; gap:8px;">
-                <button class="save-btn" onclick="saveEdit(${messageIndex}, '${convId}')" style="background:var(--success); color:white; border:none; padding:6px 12px; border-radius:6px;">Save</button>
-                <button class="cancel-btn" onclick="cancelEdit('${convId}')" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); padding:6px 12px; border-radius:6px;">Cancel</button>
-            </div>
-        `;
-        contentDiv.innerHTML = editHtml;
-        contentDiv.querySelector('.edit-input')?.focus();
+    window.editMessage = function(idx, convId) {
+        const container = document.getElementById(`msg-content-${idx}`);
+        const currentText = container?.textContent || '';
+        container.innerHTML = `<textarea class="edit-input" style="width:100%;background:var(--bg-primary);border:1px solid var(--accent);border-radius:8px;padding:10px;color:var(--text-primary);margin-bottom:8px;" rows="3">${escapeHtml(currentText)}</textarea>
+            <div style="display:flex;gap:8px;"><button class="save-btn" onclick="saveEdit(${idx}, '${convId}')" style="background:var(--success);color:white;border:none;padding:6px 12px;border-radius:6px;">Save</button>
+            <button class="cancel-btn" onclick="cancelEdit('${convId}')" style="background:var(--bg-hover);color:var(--text-primary);border:1px solid var(--border);padding:6px 12px;border-radius:6px;">Cancel</button></div>`;
+        container.querySelector('.edit-input')?.focus();
     };
 
-    window.saveEdit = async function(messageIndex, convId) {
-        const contentDiv = document.getElementById(`msg-content-${messageIndex}`);
-        const textarea = contentDiv?.querySelector('.edit-input');
-        const newContent = textarea?.value.trim();
+    window.saveEdit = async function(idx, convId) {
+        const container = document.getElementById(`msg-content-${idx}`);
+        const newContent = container.querySelector('.edit-input')?.value.trim();
         if (!newContent) return;
         
-        const chatContainer = document.getElementById('chatContainer');
-        let currentEl = document.querySelector(`.message[data-message-index="${messageIndex}"]`);
-        while (currentEl) {
-            const nextEl = currentEl.nextElementSibling;
-            currentEl.remove();
-            currentEl = nextEl;
-        }
-        
+        let el = document.querySelector(`.message[data-message-index="${idx}"]`);
+        while (el) { const next = el.nextElementSibling; el.remove(); el = next; }
         const typingId = 'typing-' + Date.now();
-        chatContainer.innerHTML += `
-            <div class="message assistant" id="${typingId}">
-                <div class="message-avatar">🤖</div>
-                <div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
-            </div>
-        `;
+        document.getElementById('chatContainer').innerHTML += `<div class="message assistant" id="${typingId}"><div class="message-avatar">🤖</div><div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div></div>`;
         scrollToBottom();
         
         try {
-            const response = await fetch('/api/edit_message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ conversation_id: convId, message_index: messageIndex, new_content: newContent, attached_files: [] })
-            });
-            const data = await response.json();
+            const res = await fetch('/api/edit_message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_id: convId, message_index: idx, new_content: newContent, attached_files: [] }) });
+            const data = await res.json();
             if (data.success) {
                 document.getElementById(typingId)?.remove();
                 await loadConversation(convId);
@@ -1514,48 +1769,28 @@
             }
         } catch (error) {
             document.getElementById(typingId)?.remove();
-            showToast('Error updating message');
+            showToast('Error updating');
         }
     };
 
-    window.cancelEdit = function(convId) {
-        loadConversation(convId);
-    };
+    window.cancelEdit = function(convId) { loadConversation(convId); };
 
-    window.regenerateMessage = async function(button, messageIndex) {
-        const messageDiv = button.closest('.message');
-        let userMessageDiv = messageDiv.previousElementSibling;
-        while (userMessageDiv && !userMessageDiv.classList.contains('user')) {
-            userMessageDiv = userMessageDiv.previousElementSibling;
-        }
-        if (!userMessageDiv) return;
+    window.regenerateMessage = async function(btn, idx) {
+        const msgDiv = btn.closest('.message');
+        let userDiv = msgDiv.previousElementSibling;
+        while (userDiv && !userDiv.classList.contains('user')) userDiv = userDiv.previousElementSibling;
+        if (!userDiv) return;
+        const userMsg = userDiv.querySelector(`#msg-content-${idx-1}`)?.textContent?.trim() || '';
         
-        const userContentDiv = userMessageDiv.querySelector(`#msg-content-${messageIndex - 1}`);
-        const userMessage = userContentDiv?.textContent?.trim() || '';
-        
-        let currentEl = messageDiv;
-        while (currentEl) {
-            const nextEl = currentEl.nextElementSibling;
-            currentEl.remove();
-            currentEl = nextEl;
-        }
-        
+        let el = msgDiv;
+        while (el) { const next = el.nextElementSibling; el.remove(); el = next; }
         const typingId = 'typing-' + Date.now();
-        document.getElementById('chatContainer').innerHTML += `
-            <div class="message assistant" id="${typingId}">
-                <div class="message-avatar">🤖</div>
-                <div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
-            </div>
-        `;
+        document.getElementById('chatContainer').innerHTML += `<div class="message assistant" id="${typingId}"><div class="message-avatar">🤖</div><div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div></div>`;
         scrollToBottom();
         
         try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage, conversation_id: currentConversationId, regenerate: true, regenerate_from: messageIndex })
-            });
-            const data = await response.json();
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: userMsg, conversation_id: currentConversationId, regenerate: true, regenerate_from: idx }) });
+            const data = await res.json();
             document.getElementById(typingId)?.remove();
             await loadConversation(data.conversation_id);
             showToast('Response regenerated');
@@ -1565,29 +1800,20 @@
         }
     };
 
-    window.previousVersion = async function(convId, messageIndex) {
-        const versions = currentVersions[convId]?.[messageIndex] || [];
-        let currentIdx = currentVersionIndices[convId]?.[messageIndex] ?? versions.length - 1;
-        if (currentIdx > 0) await switchVersion(convId, messageIndex, currentIdx - 1);
+    window.previousVersion = async (convId, idx) => {
+        const versions = currentVersions[convId]?.[idx] || [];
+        let curr = currentVersionIndices[convId]?.[idx] ?? versions.length - 1;
+        if (curr > 0) await switchVersion(convId, idx, curr - 1);
     };
-
-    window.nextVersion = async function(convId, messageIndex) {
-        const versions = currentVersions[convId]?.[messageIndex] || [];
-        let currentIdx = currentVersionIndices[convId]?.[messageIndex] ?? versions.length - 1;
-        if (currentIdx < versions.length - 1) await switchVersion(convId, messageIndex, currentIdx + 1);
+    window.nextVersion = async (convId, idx) => {
+        const versions = currentVersions[convId]?.[idx] || [];
+        let curr = currentVersionIndices[convId]?.[idx] ?? versions.length - 1;
+        if (curr < versions.length - 1) await switchVersion(convId, idx, curr + 1);
     };
-
-    async function switchVersion(convId, messageIndex, versionIndex) {
-        const response = await fetch('/api/switch_version', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ conversation_id: convId, message_index: messageIndex, version_index: versionIndex })
-        });
-        const data = await response.json();
-        if (data.success) {
-            await loadConversation(convId);
-            showToast(`Switched to version ${versionIndex + 1}`);
-        }
+    async function switchVersion(convId, idx, verIdx) {
+        const res = await fetch('/api/switch_version', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_id: convId, message_index: idx, version_index: verIdx }) });
+        const data = await res.json();
+        if (data.success) { await loadConversation(convId); showToast(`Switched to version ${verIdx + 1}`); }
     }
 
     async function deleteConversation(convId) {
@@ -1600,18 +1826,13 @@
     }
 
     function newChat() {
+        if (isUnifiedSearchMode) exitUnifiedSearchMode();
         currentConversationId = null;
         currentVersionIndices = {};
         pendingAttachments = [];
         codeMirrorInstances = {};
         updateAttachmentsUI();
-        document.getElementById('chatContainer').innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">✨</div>
-                <div class="empty-state-title">New conversation</div>
-                <div class="empty-state-text">How can I help you today?</div>
-            </div>
-        `;
+        document.getElementById('chatContainer').innerHTML = `<div class="empty-state"><div class="empty-state-icon">✨</div><div class="empty-state-title">New conversation</div><div class="empty-state-text">How can I help you today?</div></div>`;
         loadConversations();
     }
 
@@ -1619,32 +1840,36 @@
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
     document.getElementById('newChatBtn').addEventListener('click', newChat);
     document.getElementById('menuToggleBtn').addEventListener('click', toggleSidebar);
+    document.getElementById('panelToggleBtn').addEventListener('click', toggleMainSidebar);
     document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
     document.getElementById('fileBtn').addEventListener('click', () => document.getElementById('fileInput').click());
-    document.getElementById('fileInput').addEventListener('change', (e) => {
-        if (e.target.files.length) handleFileUpload(Array.from(e.target.files));
-        e.target.value = '';
+    document.getElementById('fileInput').addEventListener('change', (e) => { if (e.target.files.length) handleFileUpload(Array.from(e.target.files)); e.target.value = ''; });
+    document.getElementById('searchFilesBtn').addEventListener('click', () => {
+        if (isUnifiedSearchMode) exitUnifiedSearchMode();
+        else enterUnifiedSearchMode();
     });
     document.getElementById('settingsFooter').addEventListener('click', () => {
-        alert(`HenAi AI Assistant\n\nCommands:\n/search <query> - Search the web\n/extract <url> - Extract content from a URL\n/code <python> - Execute Python code\n/generate <description> - Generate AI images\n/help - Show help\n\nFeatures:\n• File attachments\n• Version history\n• Copy & edit messages`);
+        alert(`HenAi AI Assistant\n\nCommands:\n/search <query> - Search the web\n/extract <url> - Extract content from a URL\n/code <python> - Execute Python code\n/generate <description> - Generate AI images\n/help - Show help\n\nFeatures:\n• File attachments\n• Version history\n• Copy & edit messages\n• Unified file search (Zenodo, GitHub, HuggingFace)`);
     });
 
     const textarea = document.getElementById('messageInput');
-    textarea.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-    });
-    textarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-    });
+    textarea.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 120) + 'px'; });
+    textarea.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
     const scrollBtn = document.getElementById('scrollToBottomBtn');
     const chatContainer = document.getElementById('chatContainer');
     chatContainer.addEventListener('scroll', () => {
-        const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
-        scrollBtn.classList.toggle('show', !isAtBottom);
+        const atBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
+        scrollBtn.classList.toggle('show', !atBottom);
     });
     scrollBtn.addEventListener('click', () => chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' }));
+
+    // Restore sidebar state
+    const savedState = localStorage.getItem('sidebarCollapsed');
+    if (savedState === 'true') {
+        document.getElementById('sidebar').style.display = 'none';
+        sidebarCollapsed = true;
+    }
 
     loadConversations();
     newChat();
