@@ -65,21 +65,31 @@ def proxy(path):
         logger.error(f"Proxy error: {e}")
         return f"Error connecting to HenAi. Please wait a moment and try again. ({str(e)})", 503
 
+# ============= HEALTH CHECK ENDPOINT (for Render) =============
+
+@app.route('/health')
+def health():
+    """Health check endpoint for Render"""
+    return {"status": "ok", "proxy_to": HF_SPACE_URL}
+
 # ============= SIMPLE KEEP-ALIVE =============
 
 def keep_alive():
     """Background thread to keep the space warm"""
     while True:
         try:
-            requests.get(HF_SPACE_URL, timeout=30)
-            logger.info(f"💓 Keep-alive ping to {HF_SPACE_URL}")
+            response = requests.get(HF_SPACE_URL, timeout=30)
+            if response.status_code == 200:
+                logger.info(f"💓 Keep-alive ping successful to {HF_SPACE_URL}")
+            else:
+                logger.warning(f"⚠️ Keep-alive ping got status {response.status_code}")
         except Exception as e:
             logger.warning(f"Keep-alive ping failed: {e}")
         time.sleep(KEEP_ALIVE_INTERVAL)
 
-# Start keep-alive thread
-thread = threading.Thread(target=keep_alive, daemon=True)
-thread.start()
+# Start keep-alive thread (runs in background)
+keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
+keep_alive_thread.start()
 
 # ============= RUN =============
 
