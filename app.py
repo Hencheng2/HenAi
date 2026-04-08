@@ -1,24 +1,19 @@
-# app.py - Complete backend for Chat, Documents, and Search Files modes
-# Includes all imports from models.py, docs.py, workspace.py, etc.
+# app.py - Chat & Search Only Version (No Document Features)
 
 import os
 import json
 import re
 import uuid
-from flask import Flask, render_template, request, jsonify, send_file, Response
+from flask import Flask, render_template, request, jsonify, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import requests
 from datetime import datetime
-from io import BytesIO
-from docx import Document
-from docx.shared import Inches
 import base64
+from docs import DocumentProcessor
 import io
-import pandas as pd
-from PIL import Image
 
-# ============= IMPORT AI FUNCTIONS FROM models.py =============
+# Import AI functions from models.py
 from models import (
     query_ai_with_fallback,
     generate_chat_title,
@@ -27,65 +22,48 @@ from models import (
     search_web,
     extract_web_content,
     analyze_image_with_ai,
-    call_pollinations_ai,
-    query_openrouter
+    call_pollinations_ai
 )
 
-# ============= IMPORT DOCUMENT PROCESSING FROM docs.py =============
-from docs import DocumentProcessor
+# Import workspace functions from workspace.py
+from workspace import register_workspace_routes
 
-# ============= IMPORT WORKSPACE FUNCTIONS FROM workspace.py =============
-from workspace import (
-    register_workspace_routes,
-    load_workspace,
-    save_workspace,
-    build_folder_context,
-    get_file_content_from_workspace
-)
-
-# ============= IMPORT DOCUMENT CREATOR FROM mydocs.py =============
-from mydocs import DocumentCreator
-
-# ============= IMPORT VISION MODEL FROM vision.py =============
-from vision import get_vision_model
-
-# ============= IMPORT BINARY PROCESSOR =============
-from binary_processor import BinaryProcessor
-
-# ============= IMPORT MEDIA HANDLER =============
-from media import media_handler
-
-# ============= IMPORT TERMINAL BLUEPRINT =============
-from terminal import create_terminal_blueprint
-
-# ============= IMPORT FREE IMAGE GENERATOR =============
+# Import free image generator
 from image import FreeImageGenerator
 
-# ============= INITIALIZE FLASK APP =============
+# Import media handler
+from media import media_handler
+
+from vision import get_vision_model
+
+# Import terminal blueprint
+from terminal import create_terminal_blueprint
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 CORS(app)
 
-# ============= REGISTER BLUEPRINTS =============
+# Register terminal routes
 app.register_blueprint(create_terminal_blueprint(app))
 
-# ============= INITIALIZE COMPONENTS =============
-binary_processor = BinaryProcessor()
-image_generator = FreeImageGenerator(output_dir="generated_images")
-doc_processor = DocumentProcessor()
-doc_creator = DocumentCreator()
-
-# ============= ENSURE DIRECTORIES EXIST =============
+# Ensure directories exist
 os.makedirs('generated_images', exist_ok=True)
 
-# ============= CONVERSATIONS STORAGE =============
+# Initialize free image generator
+image_generator = FreeImageGenerator(output_dir="generated_images")
+
 CONVERSATIONS_FILE = 'conversations.json'
 
+# Allowed file extensions for attachments
 ALLOWED_EXTENSIONS = {
     'txt', 'md', 'py', 'js', 'html', 'css', 'json', 'xml', 'csv',
+    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp',
     'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
-    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'zip', 'rar', '7z'
+    'mp3', 'wav', 'ogg', 'flac', 'm4a',
+    'mp4', 'avi', 'mov', 'mkv', 'webm',
+    'zip', 'rar', '7z', 'tar', 'gz', 'bz2',
+    'java', 'c', 'cpp', 'h', 'rb', 'php', 'go', 'rs', 'swift', 'kt'
 }
 
 def sanitize_filename(text):
@@ -93,7 +71,10 @@ def sanitize_filename(text):
     if not text:
         return "New Chat"
     text = ''.join(char for char in text if char.isprintable() and char not in '\n\r\t')
-    replacements = {'/': '-', '\\': '-', ':': '-', '*': '-', '?': '-', '"': "'", '<': '-', '>': '-', '|': '-'}
+    replacements = {
+        '/': '-', '\\': '-', ':': '-', '*': '-', '?': '-',
+        '"': "'", '<': '-', '>': '-', '|': '-'
+    }
     for old, new in replacements.items():
         text = text.replace(old, new)
     text = text.strip()[:100]
@@ -114,8 +95,6 @@ def load_conversations():
                         conv_data['current_version_index'] = {}
                     if 'branch_root' not in conv_data:
                         conv_data['branch_root'] = None
-                    if 'pending_attachments' not in conv_data:
-                        conv_data['pending_attachments'] = []
                 return conversations
     except Exception as e:
         print(f"Error loading conversations: {e}")
@@ -131,46 +110,84 @@ def save_conversations(conversations):
 conversations = load_conversations()
 
 def extract_text_from_file(file_content, filename):
-    """Extract text from uploaded files using binary processor"""
+    """Extract text from uploaded files"""
     try:
-        processed_output = binary_processor.process_file(file_content, filename)
-        if len(processed_output) > 50000:
-            processed_output = processed_output[:50000] + "\n\n[Content truncated due to size]"
-        return processed_output
+        # Simple text extraction for common file types
+        ext = filename.split('.')[-1].lower() if '.' in filename else ''
+        
+        if ext in ['txt', 'md', 'py', 'js', 'html', 'css', 'json', 'xml', 'csv']:
+            try:
+                return file_content.decode('utf-8', errors='replace')
+            except:
+                return file_content.decode('latin-1', errors='replace')
+        else:
+            # For binary files, just note the type
+            return f"[Binary file: {filename} - {len(file_content)} bytes]"
+        
     except Exception as e:
-        print(f"Error in extraction: {e}")
+        print(f"Error extracting text: {e}")
         return f"[Error extracting from {filename}: {str(e)}]"
 
-def export_to_word(conversation_data):
-    """Export conversation to Word document"""
-    doc = Document()
-    doc.add_heading(f'HenAi Chat: {conversation_data["title"]}', 0)
-    doc.add_paragraph(f'Exported on: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-    doc.add_paragraph('-' * 50)
+def is_image_generation_request(message):
+    """Detect if a user message is requesting image generation"""
+    if not message:
+        return False
+    
+    message_lower = message.lower()
+    
+    analysis_keywords = [
+        'analyze', 'analyse', 'what is', 'what\'s', 'tell me about', 
+        'describe', 'explain', 'read this', 'look at', 'examine'
+    ]
+    
+    for keyword in analysis_keywords:
+        if keyword in message_lower:
+            return False
+    
+    image_keywords = [
+        'generate image', 'create image', 'make image', 'draw image',
+        'generate picture', 'create picture', 'make picture',
+        'generate art', 'create art',
+        'ai image', 'ai art',
+        'image of', 'picture of',
+        'draw me', 'generate me', 'create me'
+    ]
+    
+    for keyword in image_keywords:
+        if keyword in message_lower:
+            return True
+    
+    words = message_lower.split()
+    if len(words) <= 5 and any(word in ['image', 'picture', 'photo', 'art'] for word in words):
+        if not any(word in message_lower for word in ['this', 'the', 'that', 'attached']):
+            return True
+    
+    return False
 
-    for msg in conversation_data['messages']:
-        if msg['role'] == 'user':
-            doc.add_heading('You:', level=2)
-        else:
-            doc.add_heading('HenAi:', level=2)
-
-        code_blocks = re.findall(r'```(\w+)?\n([\s\S]*?)```', msg['content'])
-        if code_blocks:
-            parts = re.split(r'```\w*\n[\s\S]*?```', msg['content'])
-            for i, part in enumerate(parts):
-                if part.strip():
-                    doc.add_paragraph(part.strip())
-                if i < len(code_blocks):
-                    lang, code = code_blocks[i]
-                    doc.add_paragraph(f'[{lang.upper()} Code]')
-                    doc.add_paragraph(code.strip())
-        else:
-            doc.add_paragraph(msg['content'])
-        doc.add_paragraph('')
-
-    return doc
-
-# ============= ROUTES =============
+def extract_image_prompt(message):
+    """Extract the actual image prompt from the message"""
+    message_lower = message.lower()
+    
+    prefixes = [
+        'generate image of', 'create image of', 'make image of', 'draw image of',
+        'generate picture of', 'create picture of', 'make picture of',
+        'image of', 'picture of',
+        'draw me', 'generate me', 'create me',
+        'generate an image of', 'create an image of'
+    ]
+    
+    prompt = message.strip()
+    for prefix in prefixes:
+        if message_lower.startswith(prefix):
+            prompt = message[len(prefix):].strip()
+            break
+    
+    prompt = prompt.strip('.,!?;:')
+    
+    if len(prompt) < 3:
+        prompt = message.strip()
+    
+    return prompt
 
 @app.route('/')
 def index():
@@ -195,8 +212,7 @@ def chat():
             'last_updated': datetime.now().isoformat(),
             'versions': {},
             'current_version_index': {},
-            'branch_root': None,
-            'pending_attachments': []
+            'branch_root': None
         }
 
     conv = conversations[conversation_id]
@@ -208,7 +224,7 @@ def chat():
     if 'branch_root' not in conv:
         conv['branch_root'] = None
 
-    # Handle pending attachments from archive search
+    # Handle pending attachments
     if 'pending_attachments' in conv and conv['pending_attachments']:
         if message:
             if not attached_files:
@@ -227,7 +243,7 @@ def chat():
 
         if msg_key not in conv['versions']:
             conv['versions'][msg_key] = []
-
+        
         if 'version_branches' not in conv:
             conv['version_branches'] = {}
 
@@ -327,7 +343,7 @@ def chat():
             image_prompt = full_message[6:].strip()
         
         if not image_prompt:
-            response_data['response'] = "Please provide an image description. Example: `/generate a beautiful sunset`"
+            response_data['response'] = "Please provide an image description. Example: `/generate a beautiful sunset over mountains`"
         else:
             try:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -336,13 +352,11 @@ def chat():
                 try:
                     image_path = image_generator.generate_huggingface(image_prompt, output_name=filename)
                 except Exception as e:
-                    print(f"Hugging Face failed: {e}")
-                    try:
-                        image_path = image_generator.generate_local_sd(image_prompt, output_name=filename)
-                    except Exception as e2:
-                        raise e
+                    print(f"Hugging Face generation failed: {e}")
+                    raise e
                 
                 image_filename = os.path.basename(image_path)
+                
                 image_html = f'''
 <div style="text-align: center; margin: 15px 0;">
     <img src="/api/generated_image/{image_filename}" 
@@ -360,7 +374,8 @@ def chat():
                 response_data['image_prompt'] = image_prompt
                 
             except Exception as e:
-                response_data['response'] = f"❌ **Image generation failed!**\n\nError: {str(e)}"
+                print(f"Image generation error: {e}")
+                response_data['response'] = f"❌ **Image generation failed!**\n\nError: {str(e)}\n\nPlease try a different prompt."
 
     elif full_message.lower().startswith('/help'):
         response_data['response'] = """**📚 HenAi Commands & Features**
@@ -369,31 +384,54 @@ def chat():
 • `/search <query>` - Search the web
 • `/extract <url>` - Extract content from a URL
 • `/code <python>` - Execute Python code
-• `/generate <description>` - Generate AI images
+• `/generate <description>` or `/image <description>` - Generate AI images (free!)
 • `/help` - Show this help
 
-**Chat Features:**
-• 📋 Copy messages
-• ✏️ Edit your messages
-• 🔄 Regenerate responses
-• ↔️ Toggle between version branches
-• 📎 File attachments (text, code, documents)
+**Features:**
+• 📎 File attachments (text, code, images, archives)
 • 💾 Auto-save conversations
-• 📥 Export chats to Word
-
-**Documents Mode:**
-• Create Word, PDF, Excel, PowerPoint documents
-• Extract text from documents
-• Merge/Split PDFs
-• Convert between formats
-
-**Search Files Mode:**
-• Search Zenodo for research papers
-• Search GitHub for repositories
-• Download and attach files to chat"""
+• 🏷️ Auto-titled chats
+• ✏️ Rename chats
+• 🔄 Version history with branching
+• 🎨 Free AI Image Generation
+• 🔍 Unified File Search (Zenodo, GitHub, HuggingFace)"""
+    
+    elif is_image_generation_request(full_message) and not attached_files:
+        image_prompt = extract_image_prompt(full_message)
+        
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"ai_gen_{timestamp}.png"
+            
+            try:
+                image_path = image_generator.generate_huggingface(image_prompt, output_name=filename)
+            except Exception as e:
+                print(f"Hugging Face generation failed: {e}")
+                raise e
+            
+            image_filename = os.path.basename(image_path)
+            
+            image_html = f'''
+<div style="text-align: center; margin: 15px 0;">
+    <img src="/api/generated_image/{image_filename}" 
+         alt="Generated: {image_prompt}" 
+         style="max-width: 100%; max-height: 400px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"
+         onclick="window.open('/api/generated_image/{image_filename}', '_blank')">
+    <div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
+        <i class="fas fa-expand"></i> Click to view full size
+    </div>
+</div>
+'''
+            response_data['response'] = f"🎨 **Here's an image I generated for you:**\n\n{image_html}"
+            response_data['is_image_generation'] = True
+            response_data['image_path'] = image_path
+            response_data['image_prompt'] = image_prompt
+            
+        except Exception as e:
+            print(f"Image generation error: {e}")
+            response_data['response'] = f"❌ **Image generation failed!**\n\nError: {str(e)}\n\nPlease try a different prompt."
 
     else:
-        # Build context from conversation history
         context = []
         for msg in conv['messages']:
             if msg['role'] == 'user' and msg.get('attachments'):
@@ -411,17 +449,18 @@ def chat():
                     context.append({"role": msg['role'], "content": user_content})
             else:
                 context.append({"role": msg['role'], "content": msg['content']})
-        
+
         is_code_gen = is_code_generation_request(full_message)
-        prompt_for_ai = ai_message
+        
+        prompt_for_ai = ai_message if 'ai_message' in locals() else full_message
         
         if is_code_gen:
-            prompt_for_ai += "\n\nIMPORTANT: Provide the COMPLETE, FULLY FUNCTIONAL code with at least 500 lines. Do not abbreviate or use placeholders."
+            prompt_for_ai += "\n\nIMPORTANT: Provide the COMPLETE, FULLY FUNCTIONAL code. Do not abbreviate or use placeholders."
 
         ai_response = query_ai_with_fallback(prompt_for_ai, context, is_code_gen)
         response_data['response'] = ai_response
 
-    # Add messages to conversation
+    # Add messages
     if not regenerate or regenerate_from is None:
         stored_content = display_message if 'display_message' in locals() else full_message
         ai_ready_content = ai_message if 'ai_message' in locals() else full_message
@@ -533,12 +572,12 @@ def edit_message():
             context.append({"role": msg['role'], "content": msg['ai_content']})
         else:
             context.append({"role": msg['role'], "content": msg['content']})
-    
+
     is_code_gen = is_code_generation_request(full_content)
     
     if is_code_gen:
         if not any(phrase in full_content.lower() for phrase in ['summarize', 'explain', 'what is', 'tell me about']):
-            full_content += "\n\nIMPORTANT: Provide the COMPLETE, FULLY FUNCTIONAL code with at least 500 lines."
+            full_content += "\n\nIMPORTANT: Provide the COMPLETE, FULLY FUNCTIONAL code. Do not abbreviate or use placeholders."
     
     ai_response = query_ai_with_fallback(full_content, context, is_code_gen)
 
@@ -643,29 +682,27 @@ def rename_chat():
 
     return jsonify({'success': True})
 
-@app.route('/api/export_chat/<conversation_id>', methods=['GET'])
-def export_chat(conversation_id):
+@app.route('/api/get_version', methods=['POST'])
+def get_version():
+    data = request.json
+    conversation_id = data.get('conversation_id')
+    message_index = data.get('message_index')
+    version_index = data.get('version_index')
+
     if conversation_id not in conversations:
         return jsonify({'error': 'Conversation not found'}), 404
 
-    doc = export_to_word(conversations[conversation_id])
+    conv = conversations[conversation_id]
+    versions = conv.get('versions', {})
+    msg_key = str(message_index)
 
-    file_stream = BytesIO()
-    doc.save(file_stream)
-    file_stream.seek(0)
+    if msg_key not in versions or version_index >= len(versions[msg_key]):
+        return jsonify({'error': 'Version not found'}), 404
 
-    title = conversations[conversation_id]['title']
-    title = ''.join(char for char in title if char.isprintable() and char not in '\n\r\t')
-    title = title.replace('/', '-').replace('\\', '-').replace(':', '-')
-    
-    filename = f"HenAi_Chat_{title}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
-
-    return send_file(
-        file_stream,
-        as_attachment=True,
-        download_name=filename,
-        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    )
+    return jsonify({
+        'success': True,
+        'content': versions[msg_key][version_index]
+    })
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
@@ -727,7 +764,12 @@ def add_pending_attachment():
     })
     
     conv['last_updated'] = datetime.now().isoformat()
-    save_conversations(conversations)
+    
+    try:
+        save_conversations(conversations)
+    except Exception as e:
+        print(f"Error saving: {e}")
+        return jsonify({'error': f'Failed to save attachment: {str(e)}'}), 500
     
     return jsonify({
         'success': True,
@@ -776,7 +818,14 @@ def attach_to_chat():
     })
     
     conv['last_updated'] = datetime.now().isoformat()
-    save_conversations(conversations)
+    
+    try:
+        save_conversations(conversations)
+    except Exception as e:
+        print(f"Error saving: {e}")
+        if 'pending_attachments' in conv and conv['pending_attachments']:
+            conv['pending_attachments'].pop()
+            save_conversations(conversations)
     
     return jsonify({
         'success': True,
@@ -802,6 +851,7 @@ def get_conversations():
 def get_conversation(conversation_id):
     if conversation_id in conversations:
         conv_data = conversations[conversation_id]
+        
         messages = conv_data.get('messages', [])
         for msg in messages:
             if msg.get('media_data'):
@@ -868,250 +918,7 @@ def clear_pending_attachments():
     
     return jsonify({'success': True})
 
-# ============= DOCS API ENDPOINTS =============
-
-@app.route('/api/docs/generate', methods=['POST'])
-def docs_generate():
-    """Generate document content using AI"""
-    data = request.json
-    prompt = data.get('prompt', '')
-    doc_type = data.get('doc_type', 'word')
-    template_id = data.get('template_id')
-    
-    if not prompt:
-        return jsonify({'error': 'No prompt provided'}), 400
-    
-    enhanced_prompt = doc_creator._apply_template_formatting(prompt, doc_type, template_id) if template_id else prompt
-    
-    try:
-        from models import query_openrouter
-        response = query_openrouter(enhanced_prompt, context=None, is_code_generation=False)
-        
-        if response:
-            return jsonify({'success': True, 'content': response})
-        else:
-            return jsonify({'error': 'AI generation failed'}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/docs/create', methods=['POST'])
-def docs_create():
-    """Create a document from generated content"""
-    data = request.json
-    doc_type = data.get('doc_type', 'word')
-    content = data.get('content', '')
-    filename = data.get('filename', 'document')
-    template_id = data.get('template_id')
-    
-    if not content:
-        return jsonify({'error': 'No content provided'}), 400
-    
-    try:
-        output_path = doc_creator.create_document(content, doc_type, filename, template_id)
-        
-        if output_path and output_path.exists():
-            download_url = f'/api/docs/download/{output_path.name}'
-            return jsonify({
-                'success': True,
-                'filename': output_path.name,
-                'download_url': download_url
-            })
-        else:
-            return jsonify({'error': 'Failed to create document'}), 500
-    except Exception as e:
-        print(f"Error creating document: {e}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/docs/download/<filename>', methods=['GET'])
-def docs_download(filename):
-    file_path = doc_creator.output_dir / filename
-    if file_path.exists():
-        return send_file(file_path, as_attachment=True, download_name=filename)
-    return jsonify({'error': 'File not found'}), 404
-
-@app.route('/api/docs/extract', methods=['POST'])
-def docs_extract():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    
-    file = request.files['file']
-    extract_type = request.form.get('extract_type', 'text')
-    
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    filename = secure_filename(file.filename)
-    file_content = file.read()
-    
-    try:
-        temp_path = doc_creator.temp_dir / filename
-        with open(temp_path, 'wb') as f:
-            f.write(file_content)
-        
-        extracted_content = ""
-        suffix = os.path.splitext(filename)[1].lower()
-        
-        if suffix in ['.docx', '.doc']:
-            result = doc_processor.read_word_document(str(temp_path))
-            extracted_content = '\n'.join(result['paragraphs'])
-        elif suffix == '.pdf':
-            result = doc_processor.read_pdf(str(temp_path), extract_tables=False)
-            extracted_content = '\n'.join([page['text'] for page in result['pages']])
-        elif suffix in ['.pptx', '.ppt']:
-            result = doc_processor.read_presentation(str(temp_path))
-            for slide in result['slides']:
-                extracted_content += slide['text_content'] + '\n'
-        elif suffix in ['.xlsx', '.xls', '.csv']:
-            if suffix == '.csv':
-                df = pd.read_csv(str(temp_path))
-            else:
-                df = pd.read_excel(str(temp_path))
-            extracted_content = df.to_string()
-        elif suffix in ['.jpg', '.jpeg', '.png', '.gif', '.bmp']:
-            extracted_content = doc_processor.extract_text_from_image(str(temp_path))
-        else:
-            extracted_content = doc_processor.extract_text_from_file(str(temp_path))
-        
-        return jsonify({'success': True, 'content': extracted_content[:50000], 'filename': filename})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if os.path.exists(temp_path):
-            os.unlink(temp_path)
-
-@app.route('/api/docs/merge', methods=['POST'])
-def docs_merge():
-    files = request.files.getlist('files')
-    output_name = request.form.get('output_name', 'merged_document')
-    
-    if len(files) < 2:
-        return jsonify({'error': 'Need at least 2 files to merge'}), 400
-    
-    try:
-        temp_files = []
-        for file in files:
-            if file.filename and file.filename.lower().endswith('.pdf'):
-                temp_path = doc_creator.temp_dir / secure_filename(file.filename)
-                file.save(str(temp_path))
-                temp_files.append(str(temp_path))
-        
-        output_filename = f"{output_name}.pdf"
-        result_path = doc_processor.merge_pdfs(temp_files, output_filename)
-        
-        for temp_file in temp_files:
-            if os.path.exists(temp_file):
-                os.unlink(temp_file)
-        
-        download_url = f'/api/docs/download/{output_filename}'
-        return jsonify({'success': True, 'filename': output_filename, 'download_url': download_url})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/docs/split', methods=['POST'])
-def docs_split():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    
-    file = request.files['file']
-    pages_per_file = int(request.form.get('pages_per_file', 1))
-    
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    if not file.filename.lower().endswith('.pdf'):
-        return jsonify({'error': 'File must be PDF'}), 400
-    
-    try:
-        temp_path = doc_creator.temp_dir / secure_filename(file.filename)
-        file.save(str(temp_path))
-        
-        split_dir = doc_creator.temp_dir / 'split_output'
-        split_files = doc_processor.split_pdf(str(temp_path), str(split_dir), pages_per_file)
-        
-        result_files = []
-        for split_file in split_files:
-            filename = os.path.basename(split_file)
-            result_files.append({'name': filename, 'url': f'/api/docs/download/{filename}'})
-            import shutil
-            shutil.move(split_file, str(doc_creator.output_dir / filename))
-        
-        os.unlink(temp_path)
-        
-        return jsonify({'success': True, 'files_count': len(result_files), 'files': result_files})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/docs/convert', methods=['POST'])
-def docs_convert():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    
-    file = request.files['file']
-    to_format = request.form.get('to_format', 'txt')
-    
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    filename = secure_filename(file.filename)
-    file_content = file.read()
-    
-    try:
-        temp_path = doc_creator.temp_dir / filename
-        with open(temp_path, 'wb') as f:
-            f.write(file_content)
-        
-        ext_map = {'txt': '.txt', 'docx': '.docx', 'pdf': '.pdf', 'xlsx': '.xlsx', 'csv': '.csv', 'html': '.html'}
-        output_ext = ext_map.get(to_format, '.txt')
-        output_filename = f"{os.path.splitext(filename)[0]}{output_ext}"
-        
-        output_path = doc_processor.convert_document(str(temp_path), output_filename, output_format=to_format)
-        
-        os.unlink(temp_path)
-        
-        download_url = f'/api/docs/download/{os.path.basename(output_path)}'
-        return jsonify({'success': True, 'filename': os.path.basename(output_path), 'format': to_format, 'download_url': download_url})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/docs/resize', methods=['POST'])
-def docs_resize():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    
-    file = request.files['file']
-    width = request.form.get('width')
-    height = request.form.get('height')
-    maintain_aspect = request.form.get('maintain_aspect', 'true').lower() == 'true'
-    
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    filename = secure_filename(file.filename)
-    file_content = file.read()
-    
-    try:
-        temp_path = doc_creator.temp_dir / filename
-        with open(temp_path, 'wb') as f:
-            f.write(file_content)
-        
-        w = int(width) if width else None
-        h = int(height) if height else None
-        output_filename = f"resized_{filename}"
-        
-        output_path = doc_processor.resize_image(str(temp_path), output_filename, width=w, height=h, maintain_aspect=maintain_aspect)
-        
-        from PIL import Image
-        img = Image.open(output_path)
-        new_width, new_height = img.size
-        
-        os.unlink(temp_path)
-        
-        download_url = f'/api/docs/download/{output_filename}'
-        return jsonify({'success': True, 'filename': output_filename, 'width': new_width, 'height': new_height, 'download_url': download_url})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# ============= MEDIA SEARCH ENDPOINTS =============
+# ============= MEDIA API ENDPOINTS =============
 
 @app.route('/api/media/search/image', methods=['POST'])
 def search_image():
@@ -1157,6 +964,19 @@ def regenerate_media():
         return jsonify({'error': 'No query provided'}), 400
     
     result = media_handler.regenerate_with_fallback(query, media_type, current_id, provider)
+    
+    return jsonify(result)
+
+@app.route('/api/media/analyze/video', methods=['POST'])
+def analyze_video():
+    data = request.json
+    video_url = data.get('video_url', '')
+    video_name = data.get('video_name', 'video.mp4')
+    
+    if not video_url:
+        return jsonify({'error': 'No video URL provided'}), 400
+    
+    result = media_handler.analyze_video(video_url, video_name)
     return jsonify(result)
 
 @app.route('/api/media/analyze/image', methods=['POST'])
@@ -1170,32 +990,114 @@ def analyze_image():
     
     temp_file_path = None
     try:
+        print(f"📥 Downloading image from: {image_url}")
         response = requests.get(image_url, timeout=30, stream=True)
         response.raise_for_status()
+        
         image_content = response.content
+        
+        import tempfile
+        import re
         
         ext = image_name.split('.')[-1].lower() if '.' in image_name else 'jpg'
         if ext not in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp']:
             ext = 'jpg'
         
-        import tempfile
         with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as tmp:
             tmp.write(image_content)
             tmp.flush()
             temp_file_path = tmp.name
         
+        print(f"📁 Image saved to temp file: {temp_file_path}")
+        
         from vision import get_vision_model
         vision_model = get_vision_model()
+        
+        print("🔍 Analyzing image content with Vision Model...")
         vision_analysis = vision_model.analyze_image(image_content)
         
-        clean_analysis = vision_analysis if vision_analysis and len(vision_analysis) > 10 else "The image has been processed but no specific content could be identified."
+        clean_analysis = ""
         
-        return jsonify({'success': True, 'image_url': image_url, 'image_name': image_name, 'analysis': clean_analysis})
+        if vision_analysis and len(vision_analysis) > 10:
+            clean_analysis = vision_analysis
+            print(f"✅ Using Vision Model analysis ({len(clean_analysis)} chars)")
+        else:
+            name_without_ext = re.sub(r'\.[^.]+$', '', image_name)
+            clean_name = re.sub(r'[_\-\.]', ' ', name_without_ext)
+            clean_name = re.sub(r'\d+', '', clean_name).strip()
+            if clean_name and len(clean_name) > 3:
+                clean_analysis = f"This image appears to show {clean_name}."
+            else:
+                clean_analysis = "The image has been processed, but no readable text or recognizable content was detected."
+            print("⚠️ Using filename fallback")
+        
+        metadata_patterns = [
+            r'Photographer:?\s*\S+',
+            r'Photo by\s+\S+',
+            r'Credit:?\s*\S+',
+            r'Source:?\s*\S+',
+            r'Copyright\s+[©]?\s*\S+',
+            r'©\s*\d{4}\s*\S+',
+            r'\[.*?\]',
+            r'\(.*?(credit|courtesy|source).*?\)',
+            r'Image courtesy of\s+\S+',
+            r'Sourced from\s+\S+',
+            r'^\w+:\s*$',
+            r'\*\*Image Analysis:.*?\*\*',
+            r'\*\*AI Analysis:\*\*',
+            r'\*\*OCR Extracted Text Found:\*\*',
+            r'\*\*Note:\*\*',
+            r'\*\*Image Details:\*\*',
+            r'\*\*Final Analysis:\*\*',
+            r'---.*?---',
+        ]
+        
+        for pattern in metadata_patterns:
+            clean_analysis = re.sub(pattern, '', clean_analysis, flags=re.IGNORECASE | re.MULTILINE)
+        
+        clean_analysis = re.sub(r'\*\*([^*]+)\*\*', r'\1', clean_analysis)
+        clean_analysis = re.sub(r'`([^`]+)`', r'\1', clean_analysis)
+        clean_analysis = re.sub(r'#+\s*', '', clean_analysis)
+        clean_analysis = re.sub(r'\s+', ' ', clean_analysis)
+        clean_analysis = re.sub(r'\n{3,}', '\n\n', clean_analysis)
+        
+        if clean_analysis and len(clean_analysis) > 0:
+            clean_analysis = clean_analysis[0].upper() + clean_analysis[1:] if len(clean_analysis) > 1 else clean_analysis.upper()
+        
+        clean_analysis = re.sub(r'\s*[|;:]\s*$', '', clean_analysis)
+        clean_analysis = clean_analysis.strip()
+        
+        if not clean_analysis or len(clean_analysis) < 5:
+            clean_analysis = "The image has been analyzed, but no specific content could be identified."
+        
+        response_data = {
+            'success': True,
+            'image_url': image_url,
+            'image_name': image_name,
+            'analysis': clean_analysis
+        }
+        
+        print(f"✅ Analysis complete: {clean_analysis[:100]}...")
+        return jsonify(response_data)
+        
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Failed to download image: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to download image: {str(e)}'
+        }), 500
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        print(f"❌ Error analyzing image: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'Error analyzing image: {str(e)}'
+        }), 500
     finally:
         if temp_file_path:
             try:
+                import os
                 os.unlink(temp_file_path)
             except:
                 pass
@@ -1225,8 +1127,23 @@ def save_media_message():
     
     conv = conversations[conversation_id]
     
-    conv['messages'].append({'role': 'user', 'content': user_message, 'timestamp': datetime.now().isoformat(), 'attachments': None})
-    conv['messages'].append({'role': 'assistant', 'content': assistant_response, 'timestamp': datetime.now().isoformat(), 'media_data': media_data, 'is_media_result': True, 'is_error': is_error})
+    user_msg = {
+        'role': 'user',
+        'content': user_message,
+        'timestamp': datetime.now().isoformat(),
+        'attachments': None
+    }
+    conv['messages'].append(user_msg)
+    
+    assistant_msg = {
+        'role': 'assistant',
+        'content': assistant_response,
+        'timestamp': datetime.now().isoformat(),
+        'media_data': media_data,
+        'is_media_result': True,
+        'is_error': is_error
+    }
+    conv['messages'].append(assistant_msg)
     
     if conv['title'] == 'New Chat' and user_message:
         raw_title = generate_chat_title(conv['messages'])
@@ -1235,30 +1152,35 @@ def save_media_message():
     conv['last_updated'] = datetime.now().isoformat()
     save_conversations(conversations)
     
-    return jsonify({'success': True, 'conversation_id': conversation_id, 'title': conv['title']})
+    return jsonify({
+        'success': True,
+        'conversation_id': conversation_id,
+        'title': conv['title']
+    })
 
-# ============= GENERATED IMAGE SERVING =============
+# Register workspace routes
+register_workspace_routes(app)
 
 @app.route('/api/generated_image/<filename>')
 def serve_generated_image(filename):
     from flask import send_from_directory
+    
     if '..' in filename or filename.startswith('/'):
         return jsonify({'error': 'Invalid filename'}), 400
+    
     image_dir = os.path.join(os.path.dirname(__file__), 'generated_images')
     return send_from_directory(image_dir, filename)
 
-# ============= REGISTER WORKSPACE ROUTES =============
-register_workspace_routes(app)
-
-# ============= MAIN =============
 if __name__ == '__main__':
     print("\n" + "="*60)
-    print("🐔 HenAi Server Started - Chat, Documents & Search Modes")
+    print("🐔 HenAi Server Started! (Chat & Search Mode)")
     print("="*60)
     print("📍 Visit: http://localhost:5000")
-    print("💬 Chat Mode: AI conversations with file attachments, version branching")
-    print("📄 Documents Mode: Create Word/PDF/Excel, Extract text, Merge/Split PDFs")
-    print("🔍 Search Files Mode: Search Zenodo & GitHub archives")
-    print("📋 Commands: /search, /extract, /code, /generate, /help")
+    print("🤖 AI Mode: Hybrid - Pollinations.ai for conversations, OpenRouter for code")
+    print("🖼️ Media Search: Images & Videos from Pixabay and Pexels")
+    print("🎬 Video Analysis: TwelveLabs API")
+    print("💡 Commands: /search, /extract, /code, /image, /help")
+    print("📋 Features: Copy, Edit, Regenerate, Version Toggle, Rename")
+    print("📎 File Support: Text, Code, Images, Archives")
     print("="*60 + "\n")
     app.run(debug=True, host='0.0.0.0', port=5001)
