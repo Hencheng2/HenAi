@@ -3,21 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>HenAi - Chat & Search</title>
+    <title>HenAi - AI Assistant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         :root {
             --bg-primary: #0d0d0d;
             --bg-secondary: #141414;
@@ -36,6 +27,12 @@
             --warning: #f59e0b;
         }
 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             background: var(--bg-primary);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -45,35 +42,47 @@
             justify-content: center;
             color: var(--text-primary);
             line-height: 1.5;
-            padding: 12px;
+            overflow: hidden;
         }
 
         .henai-app {
             max-width: 1600px;
             width: 100%;
-            height: 95vh;
+            height: 100vh;
+            height: 100dvh;
             background: var(--bg-secondary);
-            border-radius: 24px;
             display: flex;
             overflow: hidden;
-            border: 1px solid var(--border);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
         }
 
+        /* Sidebar - Hidden on mobile by default */
         .sidebar {
             width: 280px;
             background: var(--bg-primary);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             flex-shrink: 0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+            transform: translateX(-100%);
         }
 
-        .sidebar.collapsed {
-            width: 0;
-            opacity: 0;
-            overflow: hidden;
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        /* Desktop sidebar */
+        @media (min-width: 768px) {
+            .sidebar {
+                position: relative;
+                transform: translateX(0);
+            }
         }
 
         .brand {
@@ -96,12 +105,12 @@
             margin-top: 4px;
         }
 
-        .mode-btn {
+        .new-chat-btn {
             margin: 16px;
             padding: 10px 14px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
@@ -114,16 +123,14 @@
             gap: 8px;
         }
 
-        .mode-btn:hover {
+        .new-chat-btn:hover {
             background: var(--bg-hover);
             border-color: var(--border-hover);
-            transform: translateY(-1px);
         }
 
-        .mode-btn.active-mode {
+        .new-chat-btn.active-mode {
             background: var(--accent-glow);
             border-color: var(--accent);
-            color: var(--accent);
         }
 
         .chats-section {
@@ -134,12 +141,13 @@
 
         .chat-item {
             padding: 10px 12px;
-            margin: 4px 0;
-            border-radius: 10px;
+            margin: 2px 0;
+            border-radius: 6px;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.15s;
             background: transparent;
             border: 1px solid transparent;
         }
@@ -155,17 +163,25 @@
         }
 
         .chat-title {
-            font-size: 0.8125rem;
-            font-weight: 500;
+            flex: 1;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            font-size: 0.8125rem;
+            font-weight: 500;
+        }
+
+        .chat-info {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            margin-top: 2px;
         }
 
         .chat-actions {
             display: flex;
-            gap: 6px;
+            gap: 2px;
             opacity: 0;
+            transition: opacity 0.15s;
         }
 
         .chat-item:hover .chat-actions {
@@ -177,17 +193,33 @@
             border: none;
             cursor: pointer;
             font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 6px;
+            padding: 4px 6px;
+            border-radius: 4px;
             color: var(--text-muted);
+        }
+
+        .chat-action-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .delete-chat:hover {
+            color: var(--error);
         }
 
         .sidebar-footer {
             padding: 14px;
             border-top: 1px solid var(--border);
+            cursor: pointer;
+            color: var(--text-secondary);
             text-align: center;
             font-size: 0.8125rem;
-            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .sidebar-footer:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
         }
 
         .main-area {
@@ -195,27 +227,38 @@
             display: flex;
             flex-direction: column;
             background: var(--bg-secondary);
-            min-width: 0;
+            width: 100%;
+            overflow: hidden;
         }
 
         .top-bar {
-            padding: 14px 20px;
+            padding: 12px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
-        .panel-toggle {
+        .menu-toggle {
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
-            padding: 8px 14px;
+            padding: 8px 12px;
             border-radius: 8px;
             cursor: pointer;
             color: var(--text-secondary);
+            font-size: 1rem;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+        }
+
+        @media (min-width: 768px) {
+            .menu-toggle {
+                display: none;
+            }
         }
 
         .status-badge {
@@ -224,790 +267,1387 @@
             background: rgba(34, 197, 94, 0.1);
             border-radius: 20px;
             color: var(--success);
+            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 6px;
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         .chat-container {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 16px;
             scroll-behavior: smooth;
         }
 
         .message {
             display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
-            animation: fadeIn 0.2s ease;
+            gap: 10px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
         }
-        .message.user { justify-content: flex-end; }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
         .message-avatar {
             width: 32px;
             height: 32px;
-            border-radius: 10px;
+            border-radius: 8px;
             background: var(--bg-tertiary);
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
             border: 1px solid var(--border);
         }
+
+        .message.user .message-avatar {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
         .message-content {
             max-width: 85%;
-            padding: 14px 18px;
-            border-radius: 18px;
+            padding: 12px 16px;
+            border-radius: 12px;
             line-height: 1.6;
             font-size: 0.9375rem;
+            position: relative;
         }
+
+        @media (max-width: 640px) {
+            .message-content {
+                max-width: 90%;
+                padding: 10px 14px;
+                font-size: 0.875rem;
+            }
+        }
+
         .message.user .message-content {
             background: var(--accent);
             color: white;
-            border-bottom-right-radius: 6px;
+            border-bottom-right-radius: 4px;
         }
+
         .message.assistant .message-content {
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
-            border-bottom-left-radius: 6px;
+            border-bottom-left-radius: 4px;
         }
-        .message-header { font-size: 0.8125rem; font-weight: 600; margin-bottom: 6px; }
+
+        .message-header {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .message.user .message-header {
+            color: rgba(255,255,255,0.8);
+        }
+
         .message-actions {
             margin-top: 10px;
             display: flex;
-            gap: 8px;
+            gap: 6px;
             opacity: 0;
             transition: opacity 0.2s;
+            flex-wrap: wrap;
         }
-        .message:hover .message-actions { opacity: 1; }
+
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+
+        @media (max-width: 640px) {
+            .message-actions {
+                opacity: 1;
+            }
+        }
+
         .action-btn {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
-            padding: 5px 12px;
-            border-radius: 8px;
-            font-size: 0.75rem;
             cursor: pointer;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 5px;
             color: var(--text-secondary);
+            transition: all 0.15s;
+            font-weight: 500;
         }
+
         .action-btn:hover {
             background: var(--bg-hover);
+            border-color: var(--border-hover);
             color: var(--text-primary);
         }
-        .input-area {
-            padding: 20px 24px;
+
+        .version-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 12px;
+            padding-top: 12px;
             border-top: 1px solid var(--border);
         }
-        .input-wrapper {
-            display: flex;
-            gap: 12px;
-            max-width: 900px;
-            margin: 0 auto;
+
+        .version-nav-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
         }
-        textarea {
-            flex: 1;
+
+        .version-nav-btn:hover:not(:disabled) {
+            background: var(--bg-hover);
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        .version-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .version-indicator {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--accent);
+            background: var(--accent-glow);
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--accent);
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 12px 16px;
-            color: var(--text-primary);
-            font-family: inherit;
-            resize: none;
-            min-height: 50px;
-            font-size: 0.9375rem;
+            border-radius: 6px;
+            min-width: 120px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
-        textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent-glow);
-        }
-        .send-btn {
-            background: var(--accent);
+
+        .dropdown-item {
+            width: 100%;
+            padding: 8px 12px;
+            text-align: left;
+            background: none;
             border: none;
-            padding: 12px 24px;
-            border-radius: 16px;
-            color: white;
-            font-weight: 600;
+            color: var(--text-primary);
             cursor: pointer;
-            transition: all 0.2s;
-        }
-        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .file-attachments-area {
-            max-width: 900px;
-            margin: 10px auto 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .attachment-pill {
-            background: var(--bg-tertiary);
-            border-radius: 20px;
-            padding: 6px 12px;
-            font-size: 0.75rem;
+            font-size: 0.875rem;
             display: flex;
             align-items: center;
             gap: 8px;
         }
+
+        .dropdown-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .dropdown-item.delete-chat:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        .input-area {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-secondary);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        textarea {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-family: inherit;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            font-size: 0.9375rem;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .send-btn {
+            background: var(--accent);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 70px;
+            justify-content: center;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .send-btn:disabled {
+            background: var(--bg-hover);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .file-attachments-area {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .attachment-pill {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .remove-attachment {
+            cursor: pointer;
+            color: var(--error);
+            background: none;
+            border: none;
+            font-size: 1rem;
+            padding: 0 4px;
+        }
+
         .file-btn {
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
             padding: 12px;
-            border-radius: 16px;
+            border-radius: 10px;
+            font-size: 1rem;
             cursor: pointer;
-            font-size: 1.1rem;
-        }
-        .code-block-wrapper {
-            margin: 12px 0;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #1e1e1e;
-        }
-        .code-block-header {
-            display: flex;
-            justify-content: space-between;
-            background: #2d2d30;
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--border);
-        }
-        .copy-code-btn, .download-code-btn {
-            background: transparent;
-            border: none;
             color: var(--text-secondary);
-            cursor: pointer;
-            padding: 4px 10px;
-            border-radius: 6px;
         }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-muted);
+
+        .file-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-hover);
+            color: var(--text-primary);
         }
-        .toast {
+
+        .file-btn.has-attachments {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .scroll-to-bottom-btn {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: var(--bg-tertiary);
-            padding: 12px 20px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            z-index: 2000;
-            font-size: 0.875rem;
+            bottom: 100px;
+            right: 20px;
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 90;
         }
+
+        .scroll-to-bottom-btn.show {
+            display: flex;
+        }
+
         .typing-indicator {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             padding: 8px 0;
         }
+
         .typing-indicator span {
             width: 8px;
             height: 8px;
             background: var(--accent);
             border-radius: 50%;
-            animation: bounce 1.4s infinite;
+            animation: bounce 1.4s infinite ease-in-out both;
         }
-        @keyframes bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Search mode specific */
-        .search-mode-indicator {
-            background: var(--accent-glow);
-            padding: 6px 14px;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
+
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
         }
-        .archive-result {
-            background: var(--bg-tertiary);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border);
-            transition: all 0.2s;
-        }
-        .archive-result:hover {
-            border-color: var(--accent);
-            transform: translateY(-2px);
-        }
-        .archive-result-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--accent);
-            margin-bottom: 8px;
-            cursor: pointer;
-        }
-        .archive-result-description {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin: 8px 0;
-            line-height: 1.5;
-        }
-        .archive-result-description.collapsed {
-            max-height: 80px;
-            overflow: hidden;
-        }
-        .read-more-btn {
-            background: none;
-            border: none;
-            color: var(--accent);
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin: 8px 0;
-        }
-        .archive-files {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border);
-        }
-        .archive-file-item {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .archive-file-name {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            word-break: break-all;
-        }
-        .archive-download-btn, .archive-download-to-chat-btn {
-            background: var(--accent);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .archive-download-to-chat-btn {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--accent);
-            color: var(--accent);
-        }
-        .archive-pagination {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-top: 20px;
-            padding: 16px;
-        }
-        .archive-page-btn {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            padding: 8px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-        .archive-page-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .archive-stats {
-            font-size: 0.8rem;
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
             color: var(--text-muted);
-            text-align: center;
-            margin: 12px 0;
         }
-        .loading-spinner {
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .empty-state-text {
+            font-size: 0.875rem;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            z-index: 200;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            max-width: 90%;
+            white-space: normal;
             text-align: center;
-            padding: 40px;
-            color: var(--accent);
+        }
+
+        @media (max-width: 640px) {
+            .toast {
+                white-space: normal;
+                font-size: 0.75rem;
+                padding: 8px 16px;
+            }
+        }
+
+        /* Mobile bottom padding for input */
+        @media (max-width: 640px) {
+            .input-area {
+                padding-bottom: 12px;
+            }
+            
+            .send-btn {
+                padding: 12px 16px;
+                min-width: 60px;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
         }
         
-        /* Chat selection modal */
-        .chat-selection-modal {
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-hover);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Overlay for mobile sidebar */
+        .sidebar-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 3000;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+            display: none;
         }
-        .chat-selection-content {
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            width: 400px;
-            max-width: 90%;
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
+
+        .sidebar-overlay.open {
+            display: block;
+        }
+
+        @media (min-width: 768px) {
+            .sidebar-overlay {
+                display: none !important;
+            }
+        }
+
+        /* Code blocks */
+        .code-block-wrapper {
+            margin: 12px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #1e1e1e;
             border: 1px solid var(--border);
         }
-        .chat-selection-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
+
+        .code-block-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 6px 12px;
+            background: #2d2d30;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.7rem;
         }
-        .chat-list-modal {
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px;
+
+        .code-language {
+            color: var(--accent);
+            font-weight: 600;
         }
-        .chat-option {
-            padding: 12px;
-            margin: 6px 0;
-            border-radius: 12px;
-            cursor: pointer;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-        }
-        .chat-option:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent);
-        }
-        .new-chat-option {
-            background: var(--accent-glow);
-            border-color: var(--accent);
-        }
-        .progress-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+
+        .code-block-actions {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 4000;
+            gap: 8px;
         }
-        .progress-content {
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            padding: 24px;
-            min-width: 320px;
-            text-align: center;
-            border: 1px solid var(--accent);
-        }
-        .progress-bar-container {
-            width: 100%;
-            height: 8px;
-            background: var(--bg-tertiary);
+
+        .copy-code-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px 8px;
             border-radius: 4px;
-            overflow: hidden;
-            margin: 16px 0;
+            font-size: 0.7rem;
         }
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
-            width: 0%;
-            transition: width 0.3s ease;
+
+        .copy-code-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
         }
-        @media (max-width: 768px) {
-            .sidebar { width: 240px; }
-            .message-content { max-width: 90%; }
+
+        .code-content .CodeMirror {
+            height: auto;
+            max-height: 400px;
+            font-family: monospace;
+            font-size: 0.8rem;
         }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        .message-text {
+            word-wrap: break-word;
+        }
+
+        .message-text p {
+            margin-bottom: 8px;
+        }
+
+        .message-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .inline-code {
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85em;
+            color: var(--accent);
+        }
     </style>
 </head>
 <body>
 <div class="henai-app">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <aside class="sidebar" id="sidebar">
-        <div class="brand"><h1>HenAi</h1><p>Chat & Search</p></div>
-        <div class="mode-btn" id="chatModeBtn">💬 Chat Mode</div>
-        <div class="mode-btn" id="searchModeBtn">🔍 Search Files Mode</div>
-        <div class="chats-section"><div id="chatList"></div></div>
-        <div class="sidebar-footer" id="settingsFooter">Settings & Help</div>
+        <div class="brand">
+            <h1>HenAi</h1>
+            <p>AI Assistant</p>
+        </div>
+
+        <div class="new-chat-btn" id="newChatBtn">
+            <span>+</span> New Conversation
+        </div>
+
+        <div class="chats-section">
+            <div id="chatList"></div>
+        </div>
+        
+        <div class="sidebar-footer" id="settingsFooter">
+            <i class="fas fa-info-circle"></i> About
+        </div>
     </aside>
+
     <div class="main-area">
         <div class="top-bar">
-            <button class="panel-toggle" id="panelToggleBtn"><i class="fas fa-columns"></i></button>
-            <div class="status-badge" id="modeStatus">💬 Chat Mode</div>
+            <button class="menu-toggle" id="menuToggleBtn">
+                <i class="fas fa-bars"></i>
+                <span>Menu</span>
+            </button>
+            <div class="status-badge">HenAi Ready</div>
         </div>
-        <div class="chat-container" id="chatContainer"><div class="empty-state"><div class="empty-state-icon">✨</div><div>Select a mode to start</div></div></div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="empty-state">
+                <div class="empty-state-icon">✨</div>
+                <div class="empty-state-title">Start a conversation</div>
+                <div class="empty-state-text">Type your message below to begin chatting with HenAi</div>
+            </div>
+        </div>
+
         <div class="input-area">
             <div class="input-wrapper">
-                <button class="file-btn" id="fileBtn" style="display: flex;">📎</button>
-                <textarea id="messageInput" placeholder="Message HenAi" rows="2"></textarea>
+                <button class="file-btn" id="fileBtn" title="Attach files">📎</button>
+                <textarea id="messageInput" placeholder="Message HenAi" rows="1"></textarea>
                 <button class="send-btn" id="sendBtn">Send</button>
             </div>
             <div class="file-attachments-area" id="attachmentsArea"></div>
             <input type="file" id="fileInput" style="display: none;" multiple>
         </div>
     </div>
+    
+    <button class="scroll-to-bottom-btn" id="scrollToBottomBtn" title="Scroll to bottom">
+        <i class="fas fa-arrow-down"></i>
+    </button>
 </div>
 
+<!-- CodeMirror Scripts -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
 
 <script>
-    // ============= GLOBAL STATE =============
-    let currentMode = 'chat';
     let currentConversationId = null;
+    let currentVersions = {};
+    let currentVersionIndices = {};
     let pendingAttachments = [];
     let isSending = false;
-    let conversations = [{ id: 'conv1', title: 'Welcome', messages: [{role:'assistant', content:'Hello! I am HenAi. Ask me anything or upload files.'}], message_count:1 }];
-    
-    // Search mode state
-    let unifiedSearchResults = [];
-    let unifiedSearchCurrentPage = 1;
-    let unifiedSearchTotalHits = 0;
-    let unifiedSearchQuery = '';
+    let codeMirrorInstances = {};
 
-    // Helper functions
-    function showToast(msg) {
-        let t = document.querySelector('.toast');
-        if(t) t.remove();
-        let toast = document.createElement('div');
+    // Mobile sidebar toggle
+    let sidebarOpen = false;
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebarOpen = !sidebarOpen;
+        
+        if (sidebarOpen) {
+            sidebar.classList.add('open');
+            overlay.classList.add('open');
+        } else {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('open');
+        }
+    }
+
+    function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('open');
+        sidebarOpen = false;
+    }
+
+    function showToast(message) {
+        const existing = document.querySelector('.toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
         toast.className = 'toast';
-        toast.innerText = msg;
+        toast.textContent = message;
         document.body.appendChild(toast);
-        setTimeout(()=>toast.remove(), 3000);
+        setTimeout(() => toast.remove(), 2500);
     }
 
-    function escapeHtml(str) { 
-        if(!str) return ''; 
-        return str.replace(/[&<>]/g, function(m){
-            if(m==='&') return '&amp;';
-            if(m==='<') return '&lt;';
-            if(m==='>') return '&gt;';
-            return m;
-        });
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
-    function scrollToBottom() { 
-        let c = document.getElementById('chatContainer'); 
-        if(c) c.scrollTop = c.scrollHeight; 
+    function getFileExtension(language) {
+        const extMap = {
+            'python': 'py', 'javascript': 'js', 'html': 'html', 'css': 'css',
+            'sql': 'sql', 'json': 'json', 'plaintext': 'txt'
+        };
+        return extMap[language] || 'txt';
     }
 
-    // ============= CHAT MODE FUNCTIONS =============
-    function loadConversations() {
-        let container = document.getElementById('chatList');
-        if(!container) return;
-        container.innerHTML = conversations.map(conv => `<div class="chat-item ${currentConversationId===conv.id?'active':''}" onclick="loadConversation('${conv.id}')"><div class="chat-title">${escapeHtml(conv.title)}</div><div class="chat-actions"><button class="chat-action-btn" onclick="event.stopPropagation(); deleteConversation('${conv.id}')">🗑️</button></div></div>`).join('');
-        if(conversations.length===0) container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">No chats</div>';
-    }
-
-    window.deleteConversation = function(id) {
-        conversations = conversations.filter(c=>c.id!==id);
-        if(currentConversationId===id) newChat();
-        loadConversations();
-        showToast('Conversation deleted');
-    };
-
-    function newChat() {
-        currentConversationId = null;
-        pendingAttachments = [];
-        updateAttachmentsUI();
-        document.getElementById('chatContainer').innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><div>Start a new conversation</div></div>`;
-        loadConversations();
-    }
-
-    async function loadConversation(id) {
-        let conv = conversations.find(c=>c.id===id);
-        if(!conv) return;
-        currentConversationId = id;
-        let chatDiv = document.getElementById('chatContainer');
-        chatDiv.innerHTML = '';
-        for(let i=0; i<conv.messages.length; i++) {
-            let msg = conv.messages[i];
-            let html = `<div class="message ${msg.role}"><div class="message-avatar">${msg.role==='user'?'👤':'🤖'}</div><div class="message-content"><div class="message-header">${msg.role==='user'?'You':'HenAi'}</div><div id="msg-${i}">${escapeHtml(msg.content)}</div><div class="message-actions">${msg.role==='user'?`<button class="action-btn" onclick="editMessage(${i})">Edit</button>`:`<button class="action-btn" onclick="copyMessage(${i})">Copy</button><button class="action-btn" onclick="regenerateMessage(${i})">Regenerate</button>`}</div></div></div>`;
-            chatDiv.innerHTML += html;
+    function detectCodeLanguage(text) {
+        if (!text || typeof text !== 'string') return null;
+        
+        const codeIndicators = {
+            python: ['def ', 'import ', 'from ', 'class ', 'print(', 'try:', 'except:'],
+            javascript: ['function', 'const ', 'let ', 'var ', '=>', 'console.log'],
+            html: ['<div', '<span', '<p>', '<a ', '<!DOCTYPE', '<html'],
+            css: ['{', '}', ':', ';', 'margin:', 'padding:', 'color:'],
+        };
+        
+        for (const [lang, indicators] of Object.entries(codeIndicators)) {
+            let matchCount = 0;
+            for (const indicator of indicators) {
+                if (text.includes(indicator)) matchCount++;
+                if (matchCount >= 2) return lang;
+            }
         }
-        scrollToBottom();
-        loadConversations();
+        return null;
     }
 
-    window.copyMessage = function(idx) { 
-        let conv = conversations.find(c=>c.id===currentConversationId);
-        let msg = conv?.messages[idx]?.content;
-        if(msg){ navigator.clipboard.writeText(msg); showToast('Copied!'); } 
-    };
-    window.editMessage = function(idx) { showToast('Click save after editing (demo)'); };
-    window.regenerateMessage = function(idx) { showToast('Regenerate feature active'); };
-
-    function updateAttachmentsUI() {
-        let area = document.getElementById('attachmentsArea');
-        let btn = document.getElementById('fileBtn');
-        if(!area) return;
-        area.innerHTML = pendingAttachments.map((f,i)=>`<div class="attachment-pill">📎 ${escapeHtml(f.name)} <button onclick="removeAttachment(${i})">✕</button></div>`).join('');
-        if(btn) btn.style.display = pendingAttachments.length ? 'flex' : 'flex';
+    function getCodeMirrorMode(language) {
+        const modeMap = {
+            'python': 'python', 'html': 'htmlmixed', 'css': 'css',
+            'javascript': 'javascript', 'json': 'application/json'
+        };
+        return modeMap[language] || 'text/plain';
     }
 
-    window.removeAttachment = function(i) { pendingAttachments.splice(i,1); updateAttachmentsUI(); showToast('Attachment removed'); };
-
-    async function sendChatMessage() {
-        let input = document.getElementById('messageInput');
-        let msg = input.value.trim();
-        if(!msg && pendingAttachments.length===0) return;
+    function createCodeBlock(code, language, blockId) {
+        const lang = language || detectCodeLanguage(code) || 'plaintext';
+        const mode = getCodeMirrorMode(lang);
         
-        isSending = true;
-        let btn = document.getElementById('sendBtn');
-        btn.disabled = true;
-        btn.innerText = '...';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+        wrapper.id = blockId;
         
-        if(!currentConversationId) {
-            let newId = 'conv'+Date.now();
-            conversations.unshift({ id:newId, title: msg.slice(0,30) || 'New Chat', messages: [], message_count:0 });
-            currentConversationId = newId;
-        }
+        const header = document.createElement('div');
+        header.className = 'code-block-header';
         
-        let conv = conversations.find(c=>c.id===currentConversationId);
-        conv.messages.push({ role:'user', content: msg, attachments: [...pendingAttachments] });
-        let attachmentsSent = [...pendingAttachments];
-        pendingAttachments = [];
-        updateAttachmentsUI();
+        const langLabel = document.createElement('span');
+        langLabel.className = 'code-language';
+        langLabel.innerHTML = `<i class="fas fa-code"></i> ${lang.toUpperCase()}`;
         
-        let chatDiv = document.getElementById('chatContainer');
-        let idx = conv.messages.length-1;
-        chatDiv.innerHTML += `<div class="message user"><div class="message-avatar">👤</div><div class="message-content"><div class="message-header">You</div><div id="msg-${idx}">${escapeHtml(msg)}</div><div class="message-actions"><button class="action-btn" onclick="editMessage(${idx})">Edit</button></div></div></div>`;
+        const actions = document.createElement('div');
+        actions.className = 'code-block-actions';
         
-        let typingId = 'typing'+Date.now();
-        chatDiv.innerHTML += `<div class="message assistant" id="${typingId}"><div class="message-avatar">🤖</div><div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div></div>`;
-        scrollToBottom();
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-code-btn';
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+        copyBtn.setAttribute('data-code', code);
+        copyBtn.onclick = function(e) {
+            e.stopPropagation();
+            copyCodeToClipboard(code, this);
+        };
+        actions.appendChild(copyBtn);
         
-        try {
-            let response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: msg, conversation_id: currentConversationId, attached_files: attachmentsSent })
+        header.appendChild(langLabel);
+        header.appendChild(actions);
+        
+        const codeContent = document.createElement('div');
+        codeContent.className = 'code-content';
+        
+        const textarea = document.createElement('textarea');
+        textarea.style.display = 'none';
+        textarea.value = code;
+        
+        const editorDiv = document.createElement('div');
+        
+        codeContent.appendChild(textarea);
+        codeContent.appendChild(editorDiv);
+        
+        wrapper.appendChild(header);
+        wrapper.appendChild(codeContent);
+        
+        setTimeout(() => {
+            const editor = CodeMirror(editorDiv, {
+                value: code,
+                mode: mode,
+                theme: 'dracula',
+                lineNumbers: true,
+                readOnly: true,
+                lineWrapping: true,
+                viewportMargin: Infinity
             });
-            let data = await response.json();
-            currentConversationId = data.conversation_id;
-            document.getElementById(typingId)?.remove();
-            await loadConversation(currentConversationId);
-        } catch(e) {
-            document.getElementById(typingId)?.remove();
-            showToast('Error: ' + e.message);
-        } finally {
-            isSending = false;
-            btn.disabled = false;
-            btn.innerText = 'Send';
-            input.value = '';
-        }
+            const lineCount = code.split('\n').length;
+            const height = Math.min(Math.max(lineCount * 20, 100), 400);
+            editor.setSize(null, height + 'px');
+            codeMirrorInstances[blockId] = editor;
+        }, 0);
+        
+        return wrapper;
     }
 
-    // ============= SEARCH FILES MODE =============
-    async function searchUnifiedArchives(query, page = 1) {
-        let results = [];
-        let totalHits = 0;
-        
-        try {
-            let zenodoRes = await fetch(`https://zenodo.org/api/records?q=${encodeURIComponent(query)}&page=${page}&size=5`);
-            let zenodoData = await zenodoRes.json();
-            let zenodoResults = (zenodoData.hits?.hits || []).map(record => ({
-                id: record.id,
-                title: record.metadata.title || 'Untitled',
-                description: record.metadata.description || 'No description',
-                source: 'zenodo',
-                sourceIcon: '📚',
-                creators: record.metadata.creators?.filter(c=>c.name).map(c=>c.name).join(', ') || 'Unknown',
-                files: (record.files || []).map(f => ({ name: f.key, downloadUrl: f.links?.self, size: f.size || 0 }))
-            }));
-            results.push(...zenodoResults);
-            totalHits += zenodoData.hits?.total || 0;
-        } catch(e) { console.error('Zenodo error:', e); }
-        
-        try {
-            let githubRes = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&page=${page}&per_page=5`);
-            let githubData = await githubRes.json();
-            let githubResults = (githubData.items || []).map(item => ({
-                id: item.full_name,
-                title: item.name,
-                description: item.description || '',
-                source: 'github',
-                sourceIcon: '💻',
-                stars: item.stargazers_count,
-                files: [{ name: `${item.name}.zip`, downloadUrl: item.html_url + '/archive/refs/heads/main.zip', size: item.size || 0, isRepo: true, repoId: item.full_name }]
-            }));
-            results.push(...githubResults);
-            totalHits += githubData.total_count || 0;
-        } catch(e) { console.error('GitHub error:', e); }
-        
-        unifiedSearchResults = results;
-        unifiedSearchTotalHits = totalHits;
-        unifiedSearchQuery = query;
-        unifiedSearchCurrentPage = page;
-        return results;
-    }
-
-    function displaySearchResults(results, total, query, page) {
-        let container = document.getElementById('chatContainer');
-        if(!results || results.length === 0) {
-            container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div>No results for "${escapeHtml(query)}"</div></div>`;
+    function copyCodeToClipboard(code, buttonElement) {
+        if (!code) {
+            showToast('No code to copy');
             return;
         }
         
-        let totalPages = Math.ceil(Math.min(total, 100) / 10);
-        let html = `<div class="search-mode-indicator">🔍 Search: "${escapeHtml(query)}" <button onclick="exitSearchMode()" style="background:none;border:none;color:var(--accent);cursor:pointer;">✕</button></div>
-                    <div class="archive-stats">Found ${total.toLocaleString()} results (Page ${page})</div>`;
-        
-        for(let result of results) {
-            let files = result.files || [];
-            html += `<div class="archive-result">
-                        <div class="archive-result-title">${result.sourceIcon} ${escapeHtml(result.title)} <span style="font-size:0.7rem;color:var(--text-muted);">[${result.source.toUpperCase()}]</span></div>
-                        ${result.creators ? `<div style="font-size:0.8rem;color:var(--text-secondary);"><i class="fas fa-user"></i> ${escapeHtml(result.creators)}</div>` : ''}
-                        ${result.stars ? `<div style="font-size:0.8rem;color:var(--text-secondary);"><i class="fas fa-star"></i> ⭐ ${result.stars.toLocaleString()}</div>` : ''}
-                        <div class="archive-result-description">${escapeHtml(result.description || 'No description')}</div>
-                        <div class="archive-files"><div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;"><i class="fas fa-paperclip"></i> Files (${files.length}):</div>`;
-            
-            for(let file of files) {
-                let fileSize = file.size ? formatFileSize(file.size) : 'Unknown';
-                html += `<div class="archive-file-item">
-                            <div><i class="fas fa-file"></i> <span class="archive-file-name">${escapeHtml(file.name)}</span> <span style="font-size:0.7rem;">(${fileSize})</span></div>
-                            <div style="display:flex;gap:8px;">
-                                <button class="archive-download-btn" onclick="downloadFile('${file.downloadUrl}', '${escapeHtml(file.name)}')"><i class="fas fa-download"></i> Download</button>
-                                <button class="archive-download-to-chat-btn" onclick="showChatSelectionModal('${file.downloadUrl}', '${escapeHtml(file.name)}', true)"><i class="fas fa-comment-dots"></i> Attach to Chat</button>
-                            </div>
-                        </div>`;
-            }
-            html += `</div></div>`;
-        }
-        
-        if(totalPages > 1) {
-            html += `<div class="archive-pagination">
-                        <button class="archive-page-btn" onclick="searchPage(${page-1})" ${page===1 ? 'disabled' : ''}>◀ Previous</button>
-                        <span style="padding:8px 16px;background:var(--bg-tertiary);border-radius:8px;">Page ${page} of ${totalPages}</span>
-                        <button class="archive-page-btn" onclick="searchPage(${page+1})" ${page===totalPages ? 'disabled' : ''}>Next ▶</button>
-                    </div>`;
-        }
-        container.innerHTML = html;
-    }
-    
-    window.searchPage = async function(page) {
-        if(!unifiedSearchQuery) return;
-        let results = await searchUnifiedArchives(unifiedSearchQuery, page);
-        displaySearchResults(results, unifiedSearchTotalHits, unifiedSearchQuery, page);
-    };
-    
-    window.downloadFile = function(url, filename) {
-        window.open(url, '_blank');
-        showToast(`Opening ${filename}`);
-    };
-    
-    function formatFileSize(bytes) {
-        if(bytes===0) return '0 B';
-        let k=1024, sizes=['B','KB','MB','GB'];
-        let i=Math.floor(Math.log(bytes)/Math.log(k));
-        return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i];
-    }
-    
-    // ============= SHOW CHAT SELECTION MODAL =============
-    window.showChatSelectionModal = async function(fileUrl, filename, isZip) {
-        let modal = document.createElement('div');
-        modal.className = 'chat-selection-modal';
-        modal.innerHTML = `<div class="chat-selection-content">
-            <div class="chat-selection-header"><h3>Attach to Conversation</h3><button class="close-modal-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;">✕</button></div>
-            <div class="chat-list-modal" id="chatListModal">
-                <div class="chat-option new-chat-option" data-chat-id="new"><div class="chat-option-title">✨ New Conversation</div></div>
-                ${conversations.map(conv => `<div class="chat-option" data-chat-id="${conv.id}"><div class="chat-option-title">${escapeHtml(conv.title)}</div><div class="chat-option-info">${conv.messages.length} messages</div></div>`).join('')}
-            </div>
-        </div>`;
-        document.body.appendChild(modal);
-        
-        modal.querySelector('.close-modal-btn').addEventListener('click', () => modal.remove());
-        modal.querySelectorAll('.chat-option').forEach(opt => {
-            opt.addEventListener('click', async () => {
-                let chatId = opt.dataset.chatId;
-                modal.remove();
-                showToast(`Attaching ${filename}...`);
-                try {
-                    let targetId = chatId;
-                    if(chatId === 'new') {
-                        let newRes = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ message:'', attached_files:[] }) });
-                        let newData = await newRes.json();
-                        targetId = newData.conversation_id;
-                    }
-                    let fileRes = await fetch(fileUrl);
-                    let blob = await fileRes.blob();
-                    let text = await blob.text();
-                    let formatted = `\n\n--- FILE: ${filename} ---\n${text}\n--- END FILE: ${filename} ---\n\n`;
-                    await fetch('/api/add_pending_attachment', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ conversation_id:targetId, filename:filename, content:formatted }) });
-                    await loadConversation(targetId);
-                    showToast(`✓ "${filename}" attached!`);
-                    if(currentMode === 'search') setMode('chat');
-                } catch(e) { showToast('Error: '+e.message); }
-            });
+        navigator.clipboard.writeText(code).then(() => {
+            showToast('Code copied!');
+            const originalHtml = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                buttonElement.innerHTML = originalHtml;
+            }, 2000);
+        }).catch(() => {
+            showToast('Failed to copy');
         });
-    };
-    
-    // ============= MODE MANAGEMENT =============
-    function setMode(mode) {
-        currentMode = mode;
-        document.getElementById('chatModeBtn').classList.remove('active-mode');
-        document.getElementById('searchModeBtn').classList.remove('active-mode');
-        let status = document.getElementById('modeStatus');
-        let input = document.getElementById('messageInput');
-        let fileBtn = document.getElementById('fileBtn');
+    }
+
+    function formatMessageText(content, container, isUserMessage = false) {
+        if (!content) return;
         
-        if(mode === 'chat') {
-            document.getElementById('chatModeBtn').classList.add('active-mode');
-            status.innerHTML = '💬 Chat Mode';
-            input.placeholder = 'Message HenAi...';
-            fileBtn.style.display = 'flex';
-            if(!currentConversationId) newChat();
-            else loadConversation(currentConversationId);
-        } else if(mode === 'search') {
-            document.getElementById('searchModeBtn').classList.add('active-mode');
-            status.innerHTML = '🔍 Search Files Mode';
-            input.placeholder = 'Search for research papers, code repositories...';
-            fileBtn.style.display = 'none';
-            pendingAttachments = [];
-            updateAttachmentsUI();
-            document.getElementById('chatContainer').innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔎</div><div>Enter a search term to find files from Zenodo and GitHub</div></div>`;
+        const messageTextDiv = document.createElement('div');
+        messageTextDiv.className = 'message-text';
+        
+        if (isUserMessage) {
+            const textPara = document.createElement('p');
+            textPara.textContent = content;
+            messageTextDiv.appendChild(textPara);
+            container.appendChild(messageTextDiv);
+            return;
+        }
+        
+        const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
+        let lastIndex = 0;
+        let match;
+        const segments = [];
+        
+        while ((match = codeBlockRegex.exec(content)) !== null) {
+            if (match.index > lastIndex) {
+                const textSegment = content.substring(lastIndex, match.index);
+                if (textSegment.trim()) {
+                    segments.push({ type: 'text', content: textSegment });
+                }
+            }
+            segments.push({ type: 'code', language: match[1], code: match[2] });
+            lastIndex = match.index + match[0].length;
+        }
+        
+        if (lastIndex < content.length) {
+            const textSegment = content.substring(lastIndex);
+            if (textSegment.trim()) {
+                segments.push({ type: 'text', content: textSegment });
+            }
+        }
+        
+        if (segments.length === 0) {
+            const lines = content.split('\n');
+            for (const line of lines) {
+                if (line.trim()) {
+                    const p = document.createElement('p');
+                    p.textContent = line;
+                    messageTextDiv.appendChild(p);
+                } else {
+                    const spacer = document.createElement('div');
+                    spacer.style.height = '8px';
+                    messageTextDiv.appendChild(spacer);
+                }
+            }
+        } else {
+            for (const segment of segments) {
+                if (segment.type === 'text') {
+                    const lines = segment.content.split('\n');
+                    for (const line of lines) {
+                        if (line.trim()) {
+                            const p = document.createElement('p');
+                            p.textContent = line;
+                            messageTextDiv.appendChild(p);
+                        } else {
+                            const spacer = document.createElement('div');
+                            spacer.style.height = '8px';
+                            messageTextDiv.appendChild(spacer);
+                        }
+                    }
+                } else if (segment.type === 'code') {
+                    const blockId = 'code-block-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                    const codeElement = createCodeBlock(segment.code, segment.language, blockId);
+                    messageTextDiv.appendChild(codeElement);
+                }
+            }
+        }
+        
+        container.appendChild(messageTextDiv);
+    }
+
+    function formatMessageHTML(role, content, index, convId, attachments = null) {
+        const msgKey = index.toString();
+        const versions = (currentVersions[convId] && currentVersions[convId][msgKey]) || [];
+        const hasVersions = versions.length > 1;
+        
+        let versionControls = '';
+        if (hasVersions && role === 'assistant') {
+            const totalVersions = versions.length;
+            let currentVersionIndex = 0;
+            
+            if (currentVersionIndices[convId] && currentVersionIndices[convId][msgKey] !== undefined) {
+                currentVersionIndex = currentVersionIndices[convId][msgKey];
+            }
+            const currentVersion = currentVersionIndex + 1;
+            
+            versionControls = `
+                <div class="version-controls">
+                    <button class="version-nav-btn" onclick="previousVersion('${convId}', ${index})" ${currentVersion === 1 ? 'disabled' : ''}>
+                        ◀ Prev
+                    </button>
+                    <span class="version-indicator">V${currentVersion}/${totalVersions}</span>
+                    <button class="version-nav-btn" onclick="nextVersion('${convId}', ${index})" ${currentVersion === totalVersions ? 'disabled' : ''}>
+                        Next ▶
+                    </button>
+                </div>
+            `;
+        }
+        
+        let attachmentsHtml = '';
+        if (role === 'user' && attachments && attachments.length > 0) {
+            attachmentsHtml = attachments.map(file => `
+                <div style="background: var(--bg-primary); border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-paperclip"></i>
+                    <span style="font-size: 0.75rem;">${escapeHtml(file.name)}</span>
+                </div>
+            `).join('');
+        }
+        
+        if (role === 'assistant') {
+            return `
+                <div class="message assistant" data-message-index="${index}">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <div class="message-header">HenAi</div>
+                        <div id="msg-content-${index}"></div>
+                        <div class="message-actions">
+                            <button class="action-btn" onclick="copyMessage(${index}, this)">Copy</button>
+                            <button class="action-btn" onclick="regenerateMessage(this, ${index})">Regenerate</button>
+                        </div>
+                        ${versionControls}
+                    </div>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="message user" data-message-index="${index}">
+                    <div class="message-content">
+                        <div class="message-header">You</div>
+                        ${attachmentsHtml}
+                        <div id="msg-content-${index}"></div>
+                        <div class="message-actions">
+                            <button class="action-btn" onclick="copyMessage(${index}, this)">Copy</button>
+                            <button class="action-btn" onclick="editMessage(${index}, '${convId}')">Edit</button>
+                        </div>
+                    </div>
+                    <div class="message-avatar">👤</div>
+                </div>
+            `;
         }
     }
-    
-    function exitSearchMode() { setMode('chat'); }
-    
-    // ============= SEND HANDLER =============
-    window.sendMessage = async function() {
-        let input = document.getElementById('messageInput');
-        let message = input.value.trim();
+
+    function scrollToBottom() {
+        const chatContainer = document.getElementById('chatContainer');
+        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+    }
+
+    async function loadConversations() {
+        const response = await fetch('/api/conversations');
+        const conversations = await response.json();
+        const chatList = document.getElementById('chatList');
         
-        if(currentMode === 'search') {
-            if(!message) return;
-            input.value = '';
-            let container = document.getElementById('chatContainer');
-            container.innerHTML = `<div class="loading-spinner"><i class="fas fa-spinner fa-spin fa-2x"></i><div>Searching for "${escapeHtml(message)}"...</div></div>`;
-            let results = await searchUnifiedArchives(message, 1);
-            displaySearchResults(results, unifiedSearchTotalHits, message, 1);
-        } else if(currentMode === 'chat') {
-            await sendChatMessage();
+        if (conversations.length === 0) {
+            chatList.innerHTML = `<div style="padding: 40px 20px; color: var(--text-muted); text-align: center;">No conversations yet</div>`;
+        } else {
+            chatList.innerHTML = conversations.map(conv => `
+                <div class="chat-item ${currentConversationId === conv.id ? 'active' : ''}" onclick="loadConversation('${conv.id}')">
+                    <div style="flex: 1;">
+                        <div class="chat-title">${escapeHtml(conv.title)}</div>
+                        <div class="chat-info">${conv.message_count} messages</div>
+                    </div>
+                    <div class="chat-actions">
+                        <div class="dropdown" style="position: relative;">
+                            <button class="chat-action-btn dropdown-toggle" onclick="event.stopPropagation(); toggleChatMenu('${conv.id}')">⋮</button>
+                            <div class="dropdown-menu" id="chat-menu-${conv.id}" style="display: none;">
+                                <button class="dropdown-item" onclick="event.stopPropagation(); renameChat('${conv.id}'); closeAllMenus();">✏️ Rename</button>
+                                <button class="dropdown-item delete-chat" onclick="event.stopPropagation(); deleteConversation('${conv.id}'); closeAllMenus();">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
+    }
+
+    function toggleChatMenu(convId) {
+        closeAllMenus();
+        const menu = document.getElementById(`chat-menu-${convId}`);
+        if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function closeAllMenus() {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => menu.style.display = 'none');
+    }
+
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.dropdown-toggle')) closeAllMenus();
+        if (!event.target.closest('.sidebar') && !event.target.closest('.menu-toggle')) {
+            if (window.innerWidth < 768) closeSidebar();
+        }
+    });
+
+    async function renameChat(convId) {
+        const newTitle = prompt('Enter new chat title:');
+        if (newTitle && newTitle.trim()) {
+            await fetch('/api/rename_chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversation_id: convId, new_title: newTitle.trim() })
+            });
+            loadConversations();
+            showToast('Chat renamed');
+        }
+    }
+
+    async function loadConversation(convId) {
+        currentConversationId = convId;
+        const response = await fetch(`/api/conversation/${convId}`);
+        const convData = await response.json();
+        const chatContainer = document.getElementById('chatContainer');
+        
+        pendingAttachments = [];
+        updateAttachmentsUI();
+        
+        const pendingAttachmentsFromServer = convData.pending_attachments || [];
+        if (pendingAttachmentsFromServer.length > 0) {
+            pendingAttachments = [...pendingAttachmentsFromServer];
+            updateAttachmentsUI();
+        }
+        
+        chatContainer.innerHTML = '';
+        
+        if (convData.messages && convData.messages.length > 0) {
+            currentVersions[convId] = JSON.parse(JSON.stringify(convData.versions || {}));
+            currentVersionIndices[convId] = JSON.parse(JSON.stringify(convData.current_version_index || {}));
+            
+            for (let i = 0; i < convData.messages.length; i++) {
+                const msg = convData.messages[i];
+                const messageHtml = formatMessageHTML(msg.role, msg.content, i, convId, msg.attachments);
+                chatContainer.innerHTML += messageHtml;
+            }
+            
+            setTimeout(() => {
+                for (let i = 0; i < convData.messages.length; i++) {
+                    const msg = convData.messages[i];
+                    const contentContainer = document.getElementById(`msg-content-${i}`);
+                    if (contentContainer) {
+                        formatMessageText(msg.content, contentContainer, msg.role === 'user');
+                    }
+                }
+                scrollToBottom();
+            }, 50);
+        } else if (pendingAttachmentsFromServer.length === 0) {
+            chatContainer.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-title">No messages yet</div></div>`;
+        }
+        
+        loadConversations();
+        if (window.innerWidth < 768) closeSidebar();
+    }
+
+    function updateAttachmentsUI() {
+        const attachmentsArea = document.getElementById('attachmentsArea');
+        const fileBtn = document.getElementById('fileBtn');
+        
+        if (pendingAttachments.length === 0) {
+            attachmentsArea.innerHTML = '';
+            fileBtn.classList.remove('has-attachments');
+        } else {
+            fileBtn.classList.add('has-attachments');
+            attachmentsArea.innerHTML = pendingAttachments.map((file, idx) => `
+                <div class="attachment-pill">
+                    <span>📎 ${escapeHtml(file.name)}</span>
+                    <button class="remove-attachment" onclick="removeAttachment(${idx})">×</button>
+                </div>
+            `).join('');
+        }
+    }
+
+    window.removeAttachment = function(idx) {
+        pendingAttachments.splice(idx, 1);
+        updateAttachmentsUI();
+        showToast('Attachment removed');
     };
-    
-    // ============= FILE UPLOAD =============
-    document.getElementById('fileBtn')?.addEventListener('click', () => document.getElementById('fileInput').click());
-    document.getElementById('fileInput')?.addEventListener('change', async (e) => {
-        for(let file of e.target.files) {
-            let text = await file.text();
-            pendingAttachments.push({ name: file.name, content: text.slice(0,10000) });
+
+    async function handleFileUpload(files) {
+        for (let file of files) {
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await response.json();
+            if (data.success) {
+                pendingAttachments.push({ name: data.filename, content: data.content });
+                showToast(`Added: ${data.filename}`);
+            }
         }
         updateAttachmentsUI();
+    }
+
+    async function sendMessage() {
+        if (isSending) return;
+        
+        const input = document.getElementById('messageInput');
+        const message = input.value.trim();
+        
+        if (!message && pendingAttachments.length === 0) return;
+        
+        isSending = true;
+        const sendBtn = document.getElementById('sendBtn');
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '...';
+        
+        const chatContainer = document.getElementById('chatContainer');
+        if (chatContainer.querySelector('.empty-state')) chatContainer.innerHTML = '';
+        
+        const userMessageIndex = Date.now();
+        const attachmentsToSend = [...pendingAttachments];
+        
+        const messageHtml = formatMessageHTML('user', message, userMessageIndex, currentConversationId, attachmentsToSend);
+        chatContainer.innerHTML += messageHtml;
+        
+        setTimeout(() => {
+            const contentContainer = document.getElementById(`msg-content-${userMessageIndex}`);
+            if (contentContainer) {
+                formatMessageText(message, contentContainer, true);
+            }
+        }, 0);
+        
+        input.value = '';
+        input.style.height = 'auto';
+        
+        const typingId = 'typing-' + Date.now();
+        chatContainer.innerHTML += `
+            <div class="message assistant" id="${typingId}">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="typing-indicator"><span></span><span></span><span></span></div>
+                </div>
+            </div>
+        `;
+        scrollToBottom();
+        
+        const attachmentsSent = [...pendingAttachments];
+        pendingAttachments = [];
+        updateAttachmentsUI();
+        
+        if (currentConversationId) {
+            await fetch('/api/clear_pending_attachments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversation_id: currentConversationId })
+            });
+        }
+        
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    message: message,
+                    conversation_id: currentConversationId, 
+                    attached_files: attachmentsSent
+                })
+            });
+            const data = await response.json();
+            currentConversationId = data.conversation_id;
+            document.getElementById(typingId)?.remove();
+            await loadConversation(currentConversationId);
+        } catch (error) {
+            document.getElementById(typingId)?.remove();
+            showToast('Error: ' + error.message);
+        } finally {
+            isSending = false;
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = 'Send';
+        }
+    }
+
+    window.copyMessage = async function(messageIndex, buttonElement) {
+        const contentDiv = document.getElementById(`msg-content-${messageIndex}`);
+        if (!contentDiv) return;
+        
+        let textToCopy = '';
+        const walk = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                textToCopy += node.textContent;
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.tagName === 'BR') {
+                    textToCopy += '\n';
+                } else if (node.classList && node.classList.contains('CodeMirror')) {
+                    const cm = node.CodeMirror;
+                    if (cm) textToCopy += cm.getValue() + '\n';
+                } else {
+                    for (const child of node.childNodes) walk(child);
+                }
+            }
+        };
+        walk(contentDiv);
+        
+        if (textToCopy) {
+            await navigator.clipboard.writeText(textToCopy);
+            showToast('Copied!');
+            if (buttonElement) {
+                const originalHtml = buttonElement.innerHTML;
+                buttonElement.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => buttonElement.innerHTML = originalHtml, 2000);
+            }
+        }
+    };
+
+    window.editMessage = function(messageIndex, convId) {
+        const contentDiv = document.getElementById(`msg-content-${messageIndex}`);
+        const currentText = contentDiv?.textContent || '';
+        
+        const editHtml = `
+            <textarea class="edit-input" rows="3" style="width:100%; background:var(--bg-primary); border:1px solid var(--accent); border-radius:8px; padding:10px; color:var(--text-primary); margin-bottom:8px;">${escapeHtml(currentText)}</textarea>
+            <div class="edit-buttons" style="display:flex; gap:8px;">
+                <button class="save-btn" onclick="saveEdit(${messageIndex}, '${convId}')" style="background:var(--success); color:white; border:none; padding:6px 12px; border-radius:6px;">Save</button>
+                <button class="cancel-btn" onclick="cancelEdit('${convId}')" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); padding:6px 12px; border-radius:6px;">Cancel</button>
+            </div>
+        `;
+        contentDiv.innerHTML = editHtml;
+        contentDiv.querySelector('.edit-input')?.focus();
+    };
+
+    window.saveEdit = async function(messageIndex, convId) {
+        const contentDiv = document.getElementById(`msg-content-${messageIndex}`);
+        const textarea = contentDiv?.querySelector('.edit-input');
+        const newContent = textarea?.value.trim();
+        if (!newContent) return;
+        
+        const chatContainer = document.getElementById('chatContainer');
+        let currentEl = document.querySelector(`.message[data-message-index="${messageIndex}"]`);
+        while (currentEl) {
+            const nextEl = currentEl.nextElementSibling;
+            currentEl.remove();
+            currentEl = nextEl;
+        }
+        
+        const typingId = 'typing-' + Date.now();
+        chatContainer.innerHTML += `
+            <div class="message assistant" id="${typingId}">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
+            </div>
+        `;
+        scrollToBottom();
+        
+        try {
+            const response = await fetch('/api/edit_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversation_id: convId, message_index: messageIndex, new_content: newContent, attached_files: [] })
+            });
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById(typingId)?.remove();
+                await loadConversation(convId);
+                showToast('Message updated');
+            }
+        } catch (error) {
+            document.getElementById(typingId)?.remove();
+            showToast('Error updating message');
+        }
+    };
+
+    window.cancelEdit = function(convId) {
+        loadConversation(convId);
+    };
+
+    window.regenerateMessage = async function(button, messageIndex) {
+        const messageDiv = button.closest('.message');
+        let userMessageDiv = messageDiv.previousElementSibling;
+        while (userMessageDiv && !userMessageDiv.classList.contains('user')) {
+            userMessageDiv = userMessageDiv.previousElementSibling;
+        }
+        if (!userMessageDiv) return;
+        
+        const userContentDiv = userMessageDiv.querySelector(`#msg-content-${messageIndex - 1}`);
+        const userMessage = userContentDiv?.textContent?.trim() || '';
+        
+        let currentEl = messageDiv;
+        while (currentEl) {
+            const nextEl = currentEl.nextElementSibling;
+            currentEl.remove();
+            currentEl = nextEl;
+        }
+        
+        const typingId = 'typing-' + Date.now();
+        document.getElementById('chatContainer').innerHTML += `
+            <div class="message assistant" id="${typingId}">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
+            </div>
+        `;
+        scrollToBottom();
+        
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userMessage, conversation_id: currentConversationId, regenerate: true, regenerate_from: messageIndex })
+            });
+            const data = await response.json();
+            document.getElementById(typingId)?.remove();
+            await loadConversation(data.conversation_id);
+            showToast('Response regenerated');
+        } catch (error) {
+            document.getElementById(typingId)?.remove();
+            showToast('Error regenerating');
+        }
+    };
+
+    window.previousVersion = async function(convId, messageIndex) {
+        const versions = currentVersions[convId]?.[messageIndex] || [];
+        let currentIdx = currentVersionIndices[convId]?.[messageIndex] ?? versions.length - 1;
+        if (currentIdx > 0) await switchVersion(convId, messageIndex, currentIdx - 1);
+    };
+
+    window.nextVersion = async function(convId, messageIndex) {
+        const versions = currentVersions[convId]?.[messageIndex] || [];
+        let currentIdx = currentVersionIndices[convId]?.[messageIndex] ?? versions.length - 1;
+        if (currentIdx < versions.length - 1) await switchVersion(convId, messageIndex, currentIdx + 1);
+    };
+
+    async function switchVersion(convId, messageIndex, versionIndex) {
+        const response = await fetch('/api/switch_version', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ conversation_id: convId, message_index: messageIndex, version_index: versionIndex })
+        });
+        const data = await response.json();
+        if (data.success) {
+            await loadConversation(convId);
+            showToast(`Switched to version ${versionIndex + 1}`);
+        }
+    }
+
+    async function deleteConversation(convId) {
+        if (confirm('Delete this conversation?')) {
+            await fetch(`/api/delete_conversation/${convId}`, { method: 'DELETE' });
+            if (currentConversationId === convId) newChat();
+            loadConversations();
+            showToast('Conversation deleted');
+        }
+    }
+
+    function newChat() {
+        currentConversationId = null;
+        currentVersionIndices = {};
+        pendingAttachments = [];
+        codeMirrorInstances = {};
+        updateAttachmentsUI();
+        document.getElementById('chatContainer').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">✨</div>
+                <div class="empty-state-title">New conversation</div>
+                <div class="empty-state-text">How can I help you today?</div>
+            </div>
+        `;
+        loadConversations();
+    }
+
+    // Event listeners
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('newChatBtn').addEventListener('click', newChat);
+    document.getElementById('menuToggleBtn').addEventListener('click', toggleSidebar);
+    document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+    document.getElementById('fileBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+        if (e.target.files.length) handleFileUpload(Array.from(e.target.files));
         e.target.value = '';
     });
-    
-    // ============= EVENT LISTENERS =============
-    document.getElementById('sendBtn').addEventListener('click', () => sendMessage());
-    document.getElementById('messageInput').addEventListener('keydown', (e) => { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-    document.getElementById('panelToggleBtn').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
-    document.getElementById('chatModeBtn').addEventListener('click', () => setMode('chat'));
-    document.getElementById('searchModeBtn').addEventListener('click', () => setMode('search'));
-    document.getElementById('settingsFooter').addEventListener('click', () => alert('HenAi - Chat & Search Modes\n\nChat: Conversations, file attachments, copy/edit/regenerate messages\nSearch: Find files from Zenodo (research) and GitHub (code)'));
-    
-    setMode('chat');
+    document.getElementById('settingsFooter').addEventListener('click', () => {
+        alert(`HenAi AI Assistant\n\nCommands:\n/search <query> - Search the web\n/extract <url> - Extract content from a URL\n/code <python> - Execute Python code\n/generate <description> - Generate AI images\n/help - Show help\n\nFeatures:\n• File attachments\n• Version history\n• Copy & edit messages`);
+    });
+
+    const textarea = document.getElementById('messageInput');
+    textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+
+    const scrollBtn = document.getElementById('scrollToBottomBtn');
+    const chatContainer = document.getElementById('chatContainer');
+    chatContainer.addEventListener('scroll', () => {
+        const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
+        scrollBtn.classList.toggle('show', !isAtBottom);
+    });
+    scrollBtn.addEventListener('click', () => chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' }));
+
+    loadConversations();
+    newChat();
 </script>
 </body>
 </html>
