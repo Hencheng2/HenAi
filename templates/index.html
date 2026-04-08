@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>HenAi - Core Modes</title>
+    <title>HenAi - Chat & Search</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -60,7 +60,6 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        /* Sidebar */
         .sidebar {
             width: 280px;
             background: var(--bg-primary);
@@ -191,7 +190,6 @@
             cursor: pointer;
         }
 
-        /* Main area */
         .main-area {
             flex: 1;
             display: flex;
@@ -238,7 +236,6 @@
             scroll-behavior: smooth;
         }
 
-        /* Message Styles */
         .message {
             display: flex;
             gap: 12px;
@@ -409,93 +406,7 @@
         @keyframes bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Docs & Search specific */
-        .docs-toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 24px;
-            padding: 16px;
-            background: var(--bg-tertiary);
-            border-radius: 20px;
-        }
-        .docs-tool-btn {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            padding: 10px 20px;
-            border-radius: 40px;
-            cursor: pointer;
-            color: var(--text-secondary);
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-        .docs-tool-btn:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-            border-color: var(--accent);
-        }
-        .template-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 16px;
-            margin-top: 20px;
-        }
-        .template-card {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .template-card:hover {
-            border-color: var(--accent);
-            transform: translateY(-3px);
-            background: var(--bg-hover);
-        }
-        .template-icon { font-size: 2rem; margin-bottom: 12px; }
-        .template-title { font-weight: 600; margin-bottom: 6px; }
-        .template-description { font-size: 0.8rem; color: var(--text-muted); }
-        .docs-form {
-            background: var(--bg-tertiary);
-            border-radius: 24px;
-            padding: 24px;
-        }
-        .docs-form-input, .docs-form-textarea {
-            width: 100%;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            color: var(--text-primary);
-            margin: 8px 0;
-        }
-        .archive-result {
-            background: var(--bg-tertiary);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .archive-result-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--accent);
-        }
-        .archive-download-btn {
-            background: var(--accent);
-            border: none;
-            padding: 8px 20px;
-            border-radius: 40px;
-            color: white;
-            cursor: pointer;
-            margin-top: 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
+        /* Search mode specific */
         .search-mode-indicator {
             background: var(--accent-glow);
             padding: 6px 14px;
@@ -504,19 +415,205 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            margin-bottom: 16px;
         }
-        .file-list-item {
+        .archive-result {
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+        .archive-result:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        .archive-result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .archive-result-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        .archive-result-description.collapsed {
+            max-height: 80px;
+            overflow: hidden;
+        }
+        .read-more-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin: 8px 0;
+        }
+        .archive-files {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+        .archive-file-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .archive-file-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+        .archive-download-btn, .archive-download-to-chat-btn {
+            background: var(--accent);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .archive-download-to-chat-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+        .archive-pagination {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+            padding: 16px;
+        }
+        .archive-page-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .archive-page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .archive-stats {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin: 12px 0;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: var(--accent);
+        }
+        
+        /* Chat selection modal */
+        .chat-selection-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        .chat-selection-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            width: 400px;
+            max-width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+        }
+        .chat-selection-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+        .chat-list-modal {
+            flex: 1;
+            overflow-y: auto;
             padding: 12px;
-            border-bottom: 1px solid var(--border);
+        }
+        .chat-option {
+            padding: 12px;
+            margin: 6px 0;
+            border-radius: 12px;
+            cursor: pointer;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+        }
+        .chat-option:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+        .new-chat-option {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+        }
+        .progress-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 4000;
+        }
+        .progress-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 24px;
+            min-width: 320px;
+            text-align: center;
+            border: 1px solid var(--accent);
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+            width: 0%;
+            transition: width 0.3s ease;
         }
         @media (max-width: 768px) {
             .sidebar { width: 240px; }
             .message-content { max-width: 90%; }
-            .template-grid { grid-template-columns: 1fr; }
-            .docs-toolbar { justify-content: center; }
         }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -526,9 +623,8 @@
 <body>
 <div class="henai-app">
     <aside class="sidebar" id="sidebar">
-        <div class="brand"><h1>HenAi</h1><p>Core Modes</p></div>
+        <div class="brand"><h1>HenAi</h1><p>Chat & Search</p></div>
         <div class="mode-btn" id="chatModeBtn">💬 Chat Mode</div>
-        <div class="mode-btn" id="docsModeBtn">📄 Documents Mode</div>
         <div class="mode-btn" id="searchModeBtn">🔍 Search Files Mode</div>
         <div class="chats-section"><div id="chatList"></div></div>
         <div class="sidebar-footer" id="settingsFooter">Settings & Help</div>
@@ -536,12 +632,12 @@
     <div class="main-area">
         <div class="top-bar">
             <button class="panel-toggle" id="panelToggleBtn"><i class="fas fa-columns"></i></button>
-            <div class="status-badge" id="modeStatus">HenAi Ready</div>
+            <div class="status-badge" id="modeStatus">💬 Chat Mode</div>
         </div>
         <div class="chat-container" id="chatContainer"><div class="empty-state"><div class="empty-state-icon">✨</div><div>Select a mode to start</div></div></div>
         <div class="input-area">
             <div class="input-wrapper">
-                <button class="file-btn" id="fileBtn" style="display: none;">📎</button>
+                <button class="file-btn" id="fileBtn" style="display: flex;">📎</button>
                 <textarea id="messageInput" placeholder="Message HenAi" rows="2"></textarea>
                 <button class="send-btn" id="sendBtn">Send</button>
             </div>
@@ -554,15 +650,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+
 <script>
-    // -------- GLOBAL STATE ----------
-    let currentMode = 'chat'; // chat, docs, search
+    // ============= GLOBAL STATE =============
+    let currentMode = 'chat';
     let currentConversationId = null;
     let pendingAttachments = [];
     let isSending = false;
+    let conversations = [{ id: 'conv1', title: 'Welcome', messages: [{role:'assistant', content:'Hello! I am HenAi. Ask me anything or upload files.'}], message_count:1 }];
+    
+    // Search mode state
     let unifiedSearchResults = [];
-    let currentDocsTemplate = null;
-    let currentDocType = null;
+    let unifiedSearchCurrentPage = 1;
+    let unifiedSearchTotalHits = 0;
+    let unifiedSearchQuery = '';
 
     // Helper functions
     function showToast(msg) {
@@ -572,26 +673,39 @@
         toast.className = 'toast';
         toast.innerText = msg;
         document.body.appendChild(toast);
-        setTimeout(()=>toast.remove(), 2500);
+        setTimeout(()=>toast.remove(), 3000);
     }
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-    function formatFileSize(bytes) { if(bytes===0) return '0 B'; let k=1024, sizes=['B','KB','MB','GB'], i=Math.floor(Math.log(bytes)/Math.log(k)); return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i]; }
 
-    // ---------- CHAT MODE (full API simulation) ----------
-    let conversations = [{ id: 'conv1', title: 'Welcome', messages: [{role:'assistant', content:'Hello! I am HenAi. Ask me anything.'}], message_count:1 }];
-    let currentVersions = {};
+    function escapeHtml(str) { 
+        if(!str) return ''; 
+        return str.replace(/[&<>]/g, function(m){
+            if(m==='&') return '&amp;';
+            if(m==='<') return '&lt;';
+            if(m==='>') return '&gt;';
+            return m;
+        });
+    }
 
+    function scrollToBottom() { 
+        let c = document.getElementById('chatContainer'); 
+        if(c) c.scrollTop = c.scrollHeight; 
+    }
+
+    // ============= CHAT MODE FUNCTIONS =============
     function loadConversations() {
         let container = document.getElementById('chatList');
+        if(!container) return;
         container.innerHTML = conversations.map(conv => `<div class="chat-item ${currentConversationId===conv.id?'active':''}" onclick="loadConversation('${conv.id}')"><div class="chat-title">${escapeHtml(conv.title)}</div><div class="chat-actions"><button class="chat-action-btn" onclick="event.stopPropagation(); deleteConversation('${conv.id}')">🗑️</button></div></div>`).join('');
         if(conversations.length===0) container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">No chats</div>';
     }
+
     window.deleteConversation = function(id) {
         conversations = conversations.filter(c=>c.id!==id);
         if(currentConversationId===id) newChat();
         loadConversations();
         showToast('Conversation deleted');
     };
+
     function newChat() {
         currentConversationId = null;
         pendingAttachments = [];
@@ -599,6 +713,7 @@
         document.getElementById('chatContainer').innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><div>Start a new conversation</div></div>`;
         loadConversations();
     }
+
     async function loadConversation(id) {
         let conv = conversations.find(c=>c.id===id);
         if(!conv) return;
@@ -607,199 +722,291 @@
         chatDiv.innerHTML = '';
         for(let i=0; i<conv.messages.length; i++) {
             let msg = conv.messages[i];
-            let html = `<div class="message ${msg.role}"><div class="message-avatar">${msg.role==='user'?'👤':'🤖'}</div><div class="message-content"><div class="message-header">${msg.role==='user'?'You':'HenAi'}</div><div id="msg-${i}"></div><div class="message-actions">${msg.role==='user'?`<button class="action-btn" onclick="editMessage(${i})">Edit</button>`:`<button class="action-btn" onclick="copyMessage(${i})">Copy</button><button class="action-btn" onclick="regenerateMessage(${i})">Regenerate</button>`}</div></div></div>`;
+            let html = `<div class="message ${msg.role}"><div class="message-avatar">${msg.role==='user'?'👤':'🤖'}</div><div class="message-content"><div class="message-header">${msg.role==='user'?'You':'HenAi'}</div><div id="msg-${i}">${escapeHtml(msg.content)}</div><div class="message-actions">${msg.role==='user'?`<button class="action-btn" onclick="editMessage(${i})">Edit</button>`:`<button class="action-btn" onclick="copyMessage(${i})">Copy</button><button class="action-btn" onclick="regenerateMessage(${i})">Regenerate</button>`}</div></div></div>`;
             chatDiv.innerHTML += html;
-        }
-        for(let i=0; i<conv.messages.length; i++) {
-            let el = document.getElementById(`msg-${i}`);
-            if(el) el.innerText = conv.messages[i].content;
         }
         scrollToBottom();
         loadConversations();
     }
-    window.editMessage = async function(idx) { showToast('Edit feature active'); };
-    window.copyMessage = function(idx) { let msg = conversations.find(c=>c.id===currentConversationId)?.messages[idx]?.content; if(msg){ navigator.clipboard.writeText(msg); showToast('Copied!'); } };
-    window.regenerateMessage = async function(idx) { showToast('Regenerate simulation'); };
-    function scrollToBottom() { let c=document.getElementById('chatContainer'); c.scrollTop=c.scrollHeight; }
-    function updateAttachmentsUI() { let area=document.getElementById('attachmentsArea'); let btn=document.getElementById('fileBtn'); area.innerHTML = pendingAttachments.map((f,i)=>`<div class="attachment-pill">📎 ${escapeHtml(f.name)} <button onclick="removeAttachment(${i})">✕</button></div>`).join(''); btn.style.display = pendingAttachments.length ? 'flex' : 'none'; }
-    window.removeAttachment = function(i) { pendingAttachments.splice(i,1); updateAttachmentsUI(); };
+
+    window.copyMessage = function(idx) { 
+        let conv = conversations.find(c=>c.id===currentConversationId);
+        let msg = conv?.messages[idx]?.content;
+        if(msg){ navigator.clipboard.writeText(msg); showToast('Copied!'); } 
+    };
+    window.editMessage = function(idx) { showToast('Click save after editing (demo)'); };
+    window.regenerateMessage = function(idx) { showToast('Regenerate feature active'); };
+
+    function updateAttachmentsUI() {
+        let area = document.getElementById('attachmentsArea');
+        let btn = document.getElementById('fileBtn');
+        if(!area) return;
+        area.innerHTML = pendingAttachments.map((f,i)=>`<div class="attachment-pill">📎 ${escapeHtml(f.name)} <button onclick="removeAttachment(${i})">✕</button></div>`).join('');
+        if(btn) btn.style.display = pendingAttachments.length ? 'flex' : 'flex';
+    }
+
+    window.removeAttachment = function(i) { pendingAttachments.splice(i,1); updateAttachmentsUI(); showToast('Attachment removed'); };
+
     async function sendChatMessage() {
         let input = document.getElementById('messageInput');
         let msg = input.value.trim();
         if(!msg && pendingAttachments.length===0) return;
-        isSending = true; let btn=document.getElementById('sendBtn'); btn.disabled=true; btn.innerText='...';
+        
+        isSending = true;
+        let btn = document.getElementById('sendBtn');
+        btn.disabled = true;
+        btn.innerText = '...';
+        
         if(!currentConversationId) {
             let newId = 'conv'+Date.now();
-            conversations.unshift({ id:newId, title: msg.slice(0,30), messages: [], message_count:0 });
+            conversations.unshift({ id:newId, title: msg.slice(0,30) || 'New Chat', messages: [], message_count:0 });
             currentConversationId = newId;
         }
+        
         let conv = conversations.find(c=>c.id===currentConversationId);
         conv.messages.push({ role:'user', content: msg, attachments: [...pendingAttachments] });
-        pendingAttachments = []; updateAttachmentsUI();
+        let attachmentsSent = [...pendingAttachments];
+        pendingAttachments = [];
+        updateAttachmentsUI();
+        
         let chatDiv = document.getElementById('chatContainer');
         let idx = conv.messages.length-1;
         chatDiv.innerHTML += `<div class="message user"><div class="message-avatar">👤</div><div class="message-content"><div class="message-header">You</div><div id="msg-${idx}">${escapeHtml(msg)}</div><div class="message-actions"><button class="action-btn" onclick="editMessage(${idx})">Edit</button></div></div></div>`;
+        
         let typingId = 'typing'+Date.now();
         chatDiv.innerHTML += `<div class="message assistant" id="${typingId}"><div class="message-avatar">🤖</div><div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div></div>`;
         scrollToBottom();
-        // simulate AI response
-        setTimeout(()=>{
-            let fakeResp = `I received: "${msg}". I'm a simple assistant in this demo. Upload files or ask anything.`;
-            conv.messages.push({ role:'assistant', content: fakeResp });
-            let respIdx = conv.messages.length-1;
+        
+        try {
+            let response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg, conversation_id: currentConversationId, attached_files: attachmentsSent })
+            });
+            let data = await response.json();
+            currentConversationId = data.conversation_id;
             document.getElementById(typingId)?.remove();
-            chatDiv.innerHTML += `<div class="message assistant"><div class="message-avatar">🤖</div><div class="message-content"><div class="message-header">HenAi</div><div id="msg-${respIdx}">${escapeHtml(fakeResp)}</div><div class="message-actions"><button class="action-btn" onclick="copyMessage(${respIdx})">Copy</button><button class="action-btn" onclick="regenerateMessage(${respIdx})">Regenerate</button></div></div></div>`;
-            scrollToBottom();
-            loadConversations();
-            isSending=false; btn.disabled=false; btn.innerText='Send';
-        }, 800);
-        input.value = '';
+            await loadConversation(currentConversationId);
+        } catch(e) {
+            document.getElementById(typingId)?.remove();
+            showToast('Error: ' + e.message);
+        } finally {
+            isSending = false;
+            btn.disabled = false;
+            btn.innerText = 'Send';
+            input.value = '';
+        }
     }
 
-    // ---------- DOCUMENTS MODE ----------
-    const DOCS_TEMPLATES = {
-        word: [{ id:'report', title:'Business Report', icon:'📊', desc:'Professional report' }],
-        txt: [{ id:'notes', title:'Plain Notes', icon:'📝', desc:'Simple text' }],
-        pdf: [{ id:'invoice', title:'Invoice', icon:'💰', desc:'PDF invoice' }],
-        excel: [{ id:'budget', title:'Budget', icon:'📊', desc:'Spreadsheet' }]
-    };
-    function enterDocsMode() {
-        currentMode = 'docs';
-        document.getElementById('modeStatus').innerHTML = '📄 Documents Mode';
-        document.getElementById('chatContainer').innerHTML = `<div class="docs-container"><div class="docs-toolbar"><button class="docs-tool-btn" onclick="showCreateDocs()"><i class="fas fa-plus"></i> Create</button><button class="docs-tool-btn" onclick="showExtractDocs()"><i class="fas fa-file-export"></i> Extract</button></div><div id="docsContentArea"><div class="empty-state">Select Create or Extract</div></div></div>`;
-        document.getElementById('messageInput').placeholder = 'Describe document content...';
-        document.getElementById('fileBtn').style.display = 'none';
-    }
-    window.showCreateDocs = function() {
-        let area = document.getElementById('docsContentArea');
-        area.innerHTML = `<div class="docs-form"><h3>Create Document</h3><div class="template-grid">${Object.entries(DOCS_TEMPLATES).map(([type, temps])=>temps.map(t=>`<div class="template-card" onclick="selectDocTemplate('${type}','${t.id}','${t.title}')"><div class="template-icon">${t.icon}</div><div class="template-title">${t.title}</div><div class="template-description">${t.desc}</div></div>`).join('')).join('')}</div></div>`;
-    };
-    window.selectDocTemplate = function(type, id, title) {
-        currentDocType = type;
-        currentDocsTemplate = { docType:type, templateId:id, title:title };
-        showToast(`Selected ${title}. Type your content and click Send.`);
-        document.getElementById('messageInput').focus();
-    };
-    window.showExtractDocs = function() {
-        let area = document.getElementById('docsContentArea');
-        area.innerHTML = `<div class="docs-form"><h3>Extract from Document</h3><input type="file" id="extractFileInput" class="docs-form-input"><button class="docs-tool-btn" style="margin-top:16px" onclick="extractDocument()">Extract Text</button></div>`;
-    };
-    window.extractDocument = async function() {
-        let fileInput = document.getElementById('extractFileInput');
-        if(!fileInput.files.length) { showToast('Select a file'); return; }
-        let file = fileInput.files[0];
-        let reader = new FileReader();
-        reader.onload = function(e) {
-            let content = e.target.result.slice(0, 2000);
-            showToast('Extraction complete');
-            document.getElementById('docsContentArea').innerHTML = `<div class="archive-result"><div class="archive-result-title">Extracted Text</div><pre style="white-space:pre-wrap">${escapeHtml(content)}</pre></div>`;
-        };
-        reader.readAsText(file);
-    };
-    async function generateDocument() {
-        let userPrompt = document.getElementById('messageInput').value.trim();
-        if(!userPrompt && !currentDocsTemplate) { showToast('Describe your document'); return; }
-        if(!currentDocsTemplate) { showToast('Select a template first'); return; }
-        showToast(`Generating ${currentDocsTemplate.title}...`);
-        let fakeContent = `Generated ${currentDocsTemplate.title}\nBased on: ${userPrompt}\nThis is a sample document. In full version, AI would create proper content.`;
-        let blob = new Blob([fakeContent], {type:'text/plain'});
-        let url = URL.createObjectURL(blob);
-        let a = document.createElement('a'); a.href=url; a.download=`${currentDocsTemplate.title}.txt`; a.click();
-        URL.revokeObjectURL(url);
-        showToast('Document generated!');
-    }
-
-    // ---------- SEARCH FILES MODE (Unified Archive Search) ----------
-    async function searchUnifiedArchives(query) {
+    // ============= SEARCH FILES MODE =============
+    async function searchUnifiedArchives(query, page = 1) {
         let results = [];
+        let totalHits = 0;
+        
         try {
-            let zenodo = await fetch(`https://zenodo.org/api/records?q=${encodeURIComponent(query)}&size=3`);
-            let zdata = await zenodo.json();
-            (zdata.hits?.hits || []).forEach(r=>{
-                results.push({ source:'Zenodo', title: r.metadata.title, description: r.metadata.description, files: r.files?.map(f=>({name:f.key, url:f.links?.self})) || [] });
-            });
-        } catch(e){}
+            let zenodoRes = await fetch(`https://zenodo.org/api/records?q=${encodeURIComponent(query)}&page=${page}&size=5`);
+            let zenodoData = await zenodoRes.json();
+            let zenodoResults = (zenodoData.hits?.hits || []).map(record => ({
+                id: record.id,
+                title: record.metadata.title || 'Untitled',
+                description: record.metadata.description || 'No description',
+                source: 'zenodo',
+                sourceIcon: '📚',
+                creators: record.metadata.creators?.filter(c=>c.name).map(c=>c.name).join(', ') || 'Unknown',
+                files: (record.files || []).map(f => ({ name: f.key, downloadUrl: f.links?.self, size: f.size || 0 }))
+            }));
+            results.push(...zenodoResults);
+            totalHits += zenodoData.hits?.total || 0;
+        } catch(e) { console.error('Zenodo error:', e); }
+        
         try {
-            let github = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&per_page=3`);
-            let gdata = await github.json();
-            (gdata.items || []).forEach(r=>{
-                results.push({ source:'GitHub', title: r.full_name, description: r.description, files: [{name:`${r.name}.zip`, url: r.html_url+'/archive/refs/heads/main.zip'}] });
-            });
-        } catch(e){}
+            let githubRes = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&page=${page}&per_page=5`);
+            let githubData = await githubRes.json();
+            let githubResults = (githubData.items || []).map(item => ({
+                id: item.full_name,
+                title: item.name,
+                description: item.description || '',
+                source: 'github',
+                sourceIcon: '💻',
+                stars: item.stargazers_count,
+                files: [{ name: `${item.name}.zip`, downloadUrl: item.html_url + '/archive/refs/heads/main.zip', size: item.size || 0, isRepo: true, repoId: item.full_name }]
+            }));
+            results.push(...githubResults);
+            totalHits += githubData.total_count || 0;
+        } catch(e) { console.error('GitHub error:', e); }
+        
+        unifiedSearchResults = results;
+        unifiedSearchTotalHits = totalHits;
+        unifiedSearchQuery = query;
+        unifiedSearchCurrentPage = page;
         return results;
     }
-    function enterSearchMode() {
-        currentMode = 'search';
-        document.getElementById('modeStatus').innerHTML = '🔍 Search Files Mode';
-        document.getElementById('chatContainer').innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔎</div><div>Enter a query to search archives (Zenodo, GitHub)</div></div>`;
-        document.getElementById('messageInput').placeholder = 'Search for research, code, or files...';
-        document.getElementById('fileBtn').style.display = 'none';
-    }
-    async function performSearch() {
-        let query = document.getElementById('messageInput').value.trim();
-        if(!query) return;
+
+    function displaySearchResults(results, total, query, page) {
         let container = document.getElementById('chatContainer');
-        container.innerHTML = `<div class="loading-spinner" style="text-align:center;padding:40px"><i class="fas fa-spinner fa-spin"></i> Searching...</div>`;
-        let results = await searchUnifiedArchives(query);
-        if(results.length===0) {
-            container.innerHTML = `<div class="empty-state">No results for "${escapeHtml(query)}"</div>`;
+        if(!results || results.length === 0) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div>No results for "${escapeHtml(query)}"</div></div>`;
             return;
         }
-        let html = `<div class="search-mode-indicator">Results for "${escapeHtml(query)}"</div>`;
-        results.forEach(res=>{
-            html += `<div class="archive-result"><div class="archive-result-title">${escapeHtml(res.source)}: ${escapeHtml(res.title)}</div><div class="archive-result-description">${escapeHtml(res.description||'No description')}</div>`;
-            (res.files||[]).forEach(f=>{
-                html += `<div class="file-list-item"><span>📄 ${escapeHtml(f.name)}</span><button class="archive-download-btn" onclick="downloadFile('${f.url}','${escapeHtml(f.name)}')">Download</button></div>`;
-            });
-            html += `</div>`;
-        });
+        
+        let totalPages = Math.ceil(Math.min(total, 100) / 10);
+        let html = `<div class="search-mode-indicator">🔍 Search: "${escapeHtml(query)}" <button onclick="exitSearchMode()" style="background:none;border:none;color:var(--accent);cursor:pointer;">✕</button></div>
+                    <div class="archive-stats">Found ${total.toLocaleString()} results (Page ${page})</div>`;
+        
+        for(let result of results) {
+            let files = result.files || [];
+            html += `<div class="archive-result">
+                        <div class="archive-result-title">${result.sourceIcon} ${escapeHtml(result.title)} <span style="font-size:0.7rem;color:var(--text-muted);">[${result.source.toUpperCase()}]</span></div>
+                        ${result.creators ? `<div style="font-size:0.8rem;color:var(--text-secondary);"><i class="fas fa-user"></i> ${escapeHtml(result.creators)}</div>` : ''}
+                        ${result.stars ? `<div style="font-size:0.8rem;color:var(--text-secondary);"><i class="fas fa-star"></i> ⭐ ${result.stars.toLocaleString()}</div>` : ''}
+                        <div class="archive-result-description">${escapeHtml(result.description || 'No description')}</div>
+                        <div class="archive-files"><div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;"><i class="fas fa-paperclip"></i> Files (${files.length}):</div>`;
+            
+            for(let file of files) {
+                let fileSize = file.size ? formatFileSize(file.size) : 'Unknown';
+                html += `<div class="archive-file-item">
+                            <div><i class="fas fa-file"></i> <span class="archive-file-name">${escapeHtml(file.name)}</span> <span style="font-size:0.7rem;">(${fileSize})</span></div>
+                            <div style="display:flex;gap:8px;">
+                                <button class="archive-download-btn" onclick="downloadFile('${file.downloadUrl}', '${escapeHtml(file.name)}')"><i class="fas fa-download"></i> Download</button>
+                                <button class="archive-download-to-chat-btn" onclick="showChatSelectionModal('${file.downloadUrl}', '${escapeHtml(file.name)}', true)"><i class="fas fa-comment-dots"></i> Attach to Chat</button>
+                            </div>
+                        </div>`;
+            }
+            html += `</div></div>`;
+        }
+        
+        if(totalPages > 1) {
+            html += `<div class="archive-pagination">
+                        <button class="archive-page-btn" onclick="searchPage(${page-1})" ${page===1 ? 'disabled' : ''}>◀ Previous</button>
+                        <span style="padding:8px 16px;background:var(--bg-tertiary);border-radius:8px;">Page ${page} of ${totalPages}</span>
+                        <button class="archive-page-btn" onclick="searchPage(${page+1})" ${page===totalPages ? 'disabled' : ''}>Next ▶</button>
+                    </div>`;
+        }
         container.innerHTML = html;
     }
-    window.downloadFile = function(url, name) {
-        window.open(url, '_blank');
-        showToast(`Opening ${name}`);
+    
+    window.searchPage = async function(page) {
+        if(!unifiedSearchQuery) return;
+        let results = await searchUnifiedArchives(unifiedSearchQuery, page);
+        displaySearchResults(results, unifiedSearchTotalHits, unifiedSearchQuery, page);
     };
-
-    // ---------- MODE ROUTING ----------
+    
+    window.downloadFile = function(url, filename) {
+        window.open(url, '_blank');
+        showToast(`Opening ${filename}`);
+    };
+    
+    function formatFileSize(bytes) {
+        if(bytes===0) return '0 B';
+        let k=1024, sizes=['B','KB','MB','GB'];
+        let i=Math.floor(Math.log(bytes)/Math.log(k));
+        return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i];
+    }
+    
+    // ============= SHOW CHAT SELECTION MODAL =============
+    window.showChatSelectionModal = async function(fileUrl, filename, isZip) {
+        let modal = document.createElement('div');
+        modal.className = 'chat-selection-modal';
+        modal.innerHTML = `<div class="chat-selection-content">
+            <div class="chat-selection-header"><h3>Attach to Conversation</h3><button class="close-modal-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;">✕</button></div>
+            <div class="chat-list-modal" id="chatListModal">
+                <div class="chat-option new-chat-option" data-chat-id="new"><div class="chat-option-title">✨ New Conversation</div></div>
+                ${conversations.map(conv => `<div class="chat-option" data-chat-id="${conv.id}"><div class="chat-option-title">${escapeHtml(conv.title)}</div><div class="chat-option-info">${conv.messages.length} messages</div></div>`).join('')}
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+        
+        modal.querySelector('.close-modal-btn').addEventListener('click', () => modal.remove());
+        modal.querySelectorAll('.chat-option').forEach(opt => {
+            opt.addEventListener('click', async () => {
+                let chatId = opt.dataset.chatId;
+                modal.remove();
+                showToast(`Attaching ${filename}...`);
+                try {
+                    let targetId = chatId;
+                    if(chatId === 'new') {
+                        let newRes = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ message:'', attached_files:[] }) });
+                        let newData = await newRes.json();
+                        targetId = newData.conversation_id;
+                    }
+                    let fileRes = await fetch(fileUrl);
+                    let blob = await fileRes.blob();
+                    let text = await blob.text();
+                    let formatted = `\n\n--- FILE: ${filename} ---\n${text}\n--- END FILE: ${filename} ---\n\n`;
+                    await fetch('/api/add_pending_attachment', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ conversation_id:targetId, filename:filename, content:formatted }) });
+                    await loadConversation(targetId);
+                    showToast(`✓ "${filename}" attached!`);
+                    if(currentMode === 'search') setMode('chat');
+                } catch(e) { showToast('Error: '+e.message); }
+            });
+        });
+    };
+    
+    // ============= MODE MANAGEMENT =============
     function setMode(mode) {
         currentMode = mode;
         document.getElementById('chatModeBtn').classList.remove('active-mode');
-        document.getElementById('docsModeBtn').classList.remove('active-mode');
         document.getElementById('searchModeBtn').classList.remove('active-mode');
-        if(mode==='chat') { document.getElementById('chatModeBtn').classList.add('active-mode'); enterChatMode(); }
-        else if(mode==='docs') { document.getElementById('docsModeBtn').classList.add('active-mode'); enterDocsMode(); }
-        else if(mode==='search') { document.getElementById('searchModeBtn').classList.add('active-mode'); enterSearchMode(); }
+        let status = document.getElementById('modeStatus');
+        let input = document.getElementById('messageInput');
+        let fileBtn = document.getElementById('fileBtn');
+        
+        if(mode === 'chat') {
+            document.getElementById('chatModeBtn').classList.add('active-mode');
+            status.innerHTML = '💬 Chat Mode';
+            input.placeholder = 'Message HenAi...';
+            fileBtn.style.display = 'flex';
+            if(!currentConversationId) newChat();
+            else loadConversation(currentConversationId);
+        } else if(mode === 'search') {
+            document.getElementById('searchModeBtn').classList.add('active-mode');
+            status.innerHTML = '🔍 Search Files Mode';
+            input.placeholder = 'Search for research papers, code repositories...';
+            fileBtn.style.display = 'none';
+            pendingAttachments = [];
+            updateAttachmentsUI();
+            document.getElementById('chatContainer').innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔎</div><div>Enter a search term to find files from Zenodo and GitHub</div></div>`;
+        }
     }
-    function enterChatMode() {
-        currentMode = 'chat';
-        document.getElementById('modeStatus').innerHTML = '💬 Chat Mode';
-        document.getElementById('messageInput').placeholder = 'Message HenAi';
-        document.getElementById('fileBtn').style.display = 'flex';
-        if(!currentConversationId) newChat();
-        else loadConversation(currentConversationId);
-    }
-    // Override send based on mode
-    window.sendMessage = function() {
-        if(currentMode === 'chat') sendChatMessage();
-        else if(currentMode === 'docs') generateDocument();
-        else if(currentMode === 'search') performSearch();
+    
+    function exitSearchMode() { setMode('chat'); }
+    
+    // ============= SEND HANDLER =============
+    window.sendMessage = async function() {
+        let input = document.getElementById('messageInput');
+        let message = input.value.trim();
+        
+        if(currentMode === 'search') {
+            if(!message) return;
+            input.value = '';
+            let container = document.getElementById('chatContainer');
+            container.innerHTML = `<div class="loading-spinner"><i class="fas fa-spinner fa-spin fa-2x"></i><div>Searching for "${escapeHtml(message)}"...</div></div>`;
+            let results = await searchUnifiedArchives(message, 1);
+            displaySearchResults(results, unifiedSearchTotalHits, message, 1);
+        } else if(currentMode === 'chat') {
+            await sendChatMessage();
+        }
     };
-    document.getElementById('sendBtn').addEventListener('click', ()=>sendMessage());
-    document.getElementById('messageInput').addEventListener('keydown', (e)=> { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-    document.getElementById('panelToggleBtn').addEventListener('click', ()=>document.getElementById('sidebar').classList.toggle('collapsed'));
-    document.getElementById('chatModeBtn').addEventListener('click', ()=>setMode('chat'));
-    document.getElementById('docsModeBtn').addEventListener('click', ()=>setMode('docs'));
-    document.getElementById('searchModeBtn').addEventListener('click', ()=>setMode('search'));
-    document.getElementById('fileBtn').addEventListener('click', ()=>document.getElementById('fileInput').click());
-    document.getElementById('fileInput').addEventListener('change', async (e)=>{
+    
+    // ============= FILE UPLOAD =============
+    document.getElementById('fileBtn')?.addEventListener('click', () => document.getElementById('fileInput').click());
+    document.getElementById('fileInput')?.addEventListener('change', async (e) => {
         for(let file of e.target.files) {
             let text = await file.text();
-            pendingAttachments.push({ name: file.name, content: text.slice(0,500) });
+            pendingAttachments.push({ name: file.name, content: text.slice(0,10000) });
         }
         updateAttachmentsUI();
-        e.target.value='';
+        e.target.value = '';
     });
-    document.getElementById('settingsFooter').addEventListener('click', ()=>alert('HenAi Core Modes\nChat: conversations, attachments, copy/edit\nDocuments: Create/Extract templates\nSearch: Unified archive search (Zenodo/GitHub)'));
+    
+    // ============= EVENT LISTENERS =============
+    document.getElementById('sendBtn').addEventListener('click', () => sendMessage());
+    document.getElementById('messageInput').addEventListener('keydown', (e) => { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+    document.getElementById('panelToggleBtn').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
+    document.getElementById('chatModeBtn').addEventListener('click', () => setMode('chat'));
+    document.getElementById('searchModeBtn').addEventListener('click', () => setMode('search'));
+    document.getElementById('settingsFooter').addEventListener('click', () => alert('HenAi - Chat & Search Modes\n\nChat: Conversations, file attachments, copy/edit/regenerate messages\nSearch: Find files from Zenodo (research) and GitHub (code)'));
+    
     setMode('chat');
 </script>
 </body>
