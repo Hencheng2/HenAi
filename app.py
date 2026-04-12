@@ -1,8 +1,8 @@
 """
-HenAi Render Proxy - Email sent instantly, no waiting for HF Space
+HenAi Render Proxy - Serves pages directly, only proxies API calls
 """
 
-from flask import Flask, request, Response, jsonify
+from flask import Flask, request, Response, jsonify, render_template_string
 from flask_cors import CORS
 import requests
 import os
@@ -16,7 +16,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 import secrets
-import uuid
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -44,15 +43,13 @@ MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', MAIL_USERNAME)
 
-# Temporary storage for verification codes (in memory - resets on restart)
+# Temporary storage
 temp_codes = {}
 
 def generate_verification_code():
-    """Generate a 6-digit verification code"""
     return ''.join(random.choices(string.digits, k=6))
 
 def send_email(to_email, subject, body):
-    """Send email using SMTP - runs instantly"""
     if not MAIL_USERNAME or not MAIL_PASSWORD:
         logger.warning("Email not configured")
         return False
@@ -70,19 +67,131 @@ def send_email(to_email, subject, body):
         server.login(MAIL_USERNAME, MAIL_PASSWORD)
         server.send_message(msg)
         server.quit()
-        logger.info(f"✅ Email sent instantly to {to_email}")
+        logger.info(f"✅ Email sent to {to_email}")
         return True
     except Exception as e:
         logger.error(f"Email error: {e}")
         return False
 
 # ===========================================
-# REGISTRATION - EMAIL SENT IMMEDIATELY
+# SIMPLE HTML PAGES (Served directly, no proxy)
+# ===========================================
+
+# Simple loading page while HF Space wakes up
+LOADING_PAGE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HenAi - Loading</title>
+    <meta http-equiv="refresh" content="3; url=/app">
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #09090b 0%, #0f0f12 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background: rgba(20,20,28,0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(124,106,255,0.2);
+            border-top-color: #7c6aff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        h2 { color: white; margin-bottom: 8px; }
+        p { color: #6b6b80; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h2>Starting HenAi...</h2>
+        <p>Please wait while we wake up the AI assistant.</p>
+    </div>
+</body>
+</html>
+"""
+
+@app.route('/')
+def index():
+    """Redirect to login or show loading page"""
+    return redirect_to_hf('/login')
+
+@app.route('/login')
+def login():
+    return redirect_to_hf('/login')
+
+@app.route('/register')
+def register():
+    return redirect_to_hf('/register')
+
+@app.route('/app')
+def app_page():
+    return redirect_to_hf('/app')
+
+@app.route('/admin')
+def admin():
+    return redirect_to_hf('/admin')
+
+@app.route('/admin-login')
+def admin_login():
+    return redirect_to_hf('/admin-login')
+
+@app.route('/verify-email')
+def verify_email():
+    return redirect_to_hf('/verify-email')
+
+@app.route('/reset-password')
+def reset_password_page():
+    return redirect_to_hf('/reset-password')
+
+@app.route('/reset-verify')
+def reset_verify():
+    return redirect_to_hf('/reset-verify')
+
+@app.route('/reset-password-new')
+def reset_password_new():
+    return redirect_to_hf('/reset-password-new')
+
+def redirect_to_hf(path):
+    """Redirect to HF Space with loading page if needed"""
+    try:
+        # Check if HF Space is responsive
+        resp = requests.get(f"{HF_SPACE_URL}/api/auth/status", timeout=5)
+        if resp.status_code == 200:
+            # HF Space is awake, redirect
+            return redirect(f"{HF_SPACE_URL}{path}")
+        else:
+            return LOADING_PAGE
+    except:
+        # HF Space is sleeping, show loading page
+        return LOADING_PAGE
+
+def redirect(location):
+    """Create a redirect response"""
+    from flask import redirect as flask_redirect
+    return flask_redirect(location)
+
+# ===========================================
+# AUTH API ENDPOINTS (Handled locally for email)
 # ===========================================
 
 @app.route('/api/auth/register', methods=['POST'])
 def handle_register():
-    """Handle registration - send email instantly, then forward to HF Space"""
     data = request.get_json()
     email = data.get('email', '')
     username = data.get('username', '')
@@ -91,73 +200,58 @@ def handle_register():
     if not email or not username or not password:
         return jsonify({'error': 'All fields required'}), 400
     
-    # STEP 1: Generate code and send email IMMEDIATELY (no waiting)
+    # Generate and send code instantly
     code = generate_verification_code()
-    
-    # Store code temporarily
     temp_codes[email] = {
         'code': code,
         'expires': datetime.utcnow() + timedelta(minutes=10)
     }
     
-    # Send email instantly
-    email_sent = send_verification_email(email, code)
-    
-    if not email_sent:
+    if send_verification_email(email, code):
+        # Forward to HF Space in background
+        def forward():
+            try:
+                requests.post(
+                    f"{HF_SPACE_URL}/api/auth/register",
+                    json=data,
+                    timeout=30
+                )
+            except:
+                pass
+        threading.Thread(target=forward, daemon=True).start()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Verification code sent to your email',
+            'email': email
+        })
+    else:
         return jsonify({'error': 'Failed to send verification email'}), 500
-    
-    # STEP 2: Forward to HF Space in background (don't wait for response)
-    def forward_to_hf():
-        try:
-            requests.post(
-                f"{HF_SPACE_URL}/api/auth/register",
-                json=data,
-                headers={'Content-Type': 'application/json'},
-                timeout=60
-            )
-        except Exception as e:
-            logger.error(f"HF Space forward error: {e}")
-    
-    # Start background thread (user doesn't wait for this)
-    threading.Thread(target=forward_to_hf, daemon=True).start()
-    
-    # STEP 3: Return success immediately
-    return jsonify({
-        'success': True,
-        'message': 'Verification code sent to your email',
-        'email': email
-    })
-
-# ===========================================
-# VERIFY CODE
-# ===========================================
 
 @app.route('/api/auth/verify', methods=['POST'])
 def verify_code():
-    """Verify the 6-digit code"""
     data = request.get_json()
     email = data.get('email')
     code = data.get('code')
     
     if email not in temp_codes:
-        return jsonify({'error': 'No verification code found. Please register again.'}), 400
+        return jsonify({'error': 'No verification code found'}), 400
     
     stored = temp_codes[email]
     if stored['expires'] < datetime.utcnow():
         del temp_codes[email]
-        return jsonify({'error': 'Code has expired. Please request a new one.'}), 400
+        return jsonify({'error': 'Code has expired'}), 400
     
     if stored['code'] != code:
-        return jsonify({'error': 'Invalid verification code'}), 400
+        return jsonify({'error': 'Invalid code'}), 400
     
-    # Code verified - forward to HF Space to complete registration
     del temp_codes[email]
     
+    # Forward to HF Space
     try:
         hf_response = requests.post(
             f"{HF_SPACE_URL}/api/auth/verify",
             json={'email': email, 'code': code},
-            headers={'Content-Type': 'application/json'},
             timeout=60
         )
         return Response(
@@ -166,15 +260,10 @@ def verify_code():
             headers=dict(hf_response.headers)
         )
     except Exception as e:
-        return jsonify({'error': 'Verification failed. Please try again.'}), 500
-
-# ===========================================
-# RESEND VERIFICATION CODE
-# ===========================================
+        return jsonify({'error': 'Verification failed'}), 500
 
 @app.route('/api/auth/resend-verification', methods=['POST'])
 def resend_verification():
-    """Resend verification code"""
     data = request.get_json()
     email = data.get('email')
     
@@ -192,20 +281,14 @@ def resend_verification():
     else:
         return jsonify({'error': 'Failed to send email'}), 500
 
-# ===========================================
-# PASSWORD RESET REQUEST
-# ===========================================
-
 @app.route('/api/auth/reset-request', methods=['POST'])
 def reset_request():
-    """Handle password reset request - send email instantly"""
     data = request.get_json()
     email = data.get('email')
     
     if not email:
         return jsonify({'error': 'Email required'}), 400
     
-    # Generate and send code instantly
     code = generate_verification_code()
     temp_codes[f"reset_{email}"] = {
         'code': code,
@@ -213,42 +296,32 @@ def reset_request():
     }
     
     if send_password_reset_email(email, code):
-        return jsonify({'success': True, 'message': 'Reset code sent to your email'})
+        return jsonify({'success': True, 'message': 'Reset code sent'})
     else:
-        return jsonify({'error': 'Failed to send reset email'}), 500
-
-# ===========================================
-# VERIFY RESET CODE
-# ===========================================
+        return jsonify({'error': 'Failed to send email'}), 500
 
 @app.route('/api/auth/verify-reset', methods=['POST'])
 def verify_reset():
-    """Verify password reset code"""
     data = request.get_json()
     email = data.get('email')
     code = data.get('code')
     
     key = f"reset_{email}"
     if key not in temp_codes:
-        return jsonify({'error': 'Invalid or expired code'}), 400
+        return jsonify({'error': 'Invalid code'}), 400
     
     stored = temp_codes[key]
     if stored['expires'] < datetime.utcnow():
         del temp_codes[key]
-        return jsonify({'error': 'Code has expired'}), 400
+        return jsonify({'error': 'Code expired'}), 400
     
     if stored['code'] != code:
         return jsonify({'error': 'Invalid code'}), 400
     
-    return jsonify({'success': True, 'message': 'Code verified'})
-
-# ===========================================
-# RESET PASSWORD
-# ===========================================
+    return jsonify({'success': True})
 
 @app.route('/api/auth/reset-password', methods=['POST'])
 def reset_password():
-    """Complete password reset"""
     data = request.get_json()
     email = data.get('email')
     code = data.get('code')
@@ -256,24 +329,22 @@ def reset_password():
     
     key = f"reset_{email}"
     if key not in temp_codes:
-        return jsonify({'error': 'Invalid or expired code'}), 400
+        return jsonify({'error': 'Invalid code'}), 400
     
     stored = temp_codes[key]
     if stored['expires'] < datetime.utcnow():
         del temp_codes[key]
-        return jsonify({'error': 'Code has expired'}), 400
+        return jsonify({'error': 'Code expired'}), 400
     
     if stored['code'] != code:
         return jsonify({'error': 'Invalid code'}), 400
     
-    # Forward to HF Space
     del temp_codes[key]
     
     try:
         hf_response = requests.post(
             f"{HF_SPACE_URL}/api/auth/reset-password",
             json={'email': email, 'new_password': new_password},
-            headers={'Content-Type': 'application/json'},
             timeout=60
         )
         return Response(
@@ -283,6 +354,91 @@ def reset_password():
         )
     except Exception as e:
         return jsonify({'error': 'Password reset failed'}), 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def login_api():
+    """Forward login to HF Space"""
+    try:
+        resp = requests.post(
+            f"{HF_SPACE_URL}/api/auth/login",
+            json=request.get_json(),
+            timeout=60
+        )
+        return Response(
+            response=resp.content,
+            status=resp.status_code,
+            headers=dict(resp.headers)
+        )
+    except Exception as e:
+        return jsonify({'error': 'Login failed'}), 500
+
+@app.route('/api/auth/status', methods=['GET'])
+def auth_status():
+    """Forward status check to HF Space"""
+    try:
+        resp = requests.get(f"{HF_SPACE_URL}/api/auth/status", timeout=10)
+        return Response(
+            response=resp.content,
+            status=resp.status_code,
+            headers=dict(resp.headers)
+        )
+    except:
+        return jsonify({'authenticated': False}), 200
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout_api():
+    """Forward logout to HF Space"""
+    try:
+        resp = requests.post(f"{HF_SPACE_URL}/api/auth/logout", timeout=30)
+        return Response(
+            response=resp.content,
+            status=resp.status_code,
+            headers=dict(resp.headers)
+        )
+    except Exception as e:
+        return jsonify({'success': True}), 200
+
+# ===========================================
+# PROXY FOR OTHER API REQUESTS
+# ===========================================
+
+@app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def proxy_api(path):
+    """Proxy API requests to HF Space"""
+    target_url = f"{HF_SPACE_URL}/api/{path}"
+    
+    try:
+        resp = requests.request(
+            method=request.method,
+            url=target_url,
+            headers={'Content-Type': 'application/json'},
+            json=request.get_json() if request.method in ['POST', 'PUT'] else None,
+            timeout=60
+        )
+        return Response(
+            response=resp.content,
+            status=resp.status_code,
+            headers=dict(resp.headers)
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 503
+
+# ===========================================
+# STATIC FILES (CSS, JS, etc.)
+# ===========================================
+
+@app.route('/static/<path:path>')
+def serve_static(path):
+    """Proxy static files to HF Space"""
+    try:
+        resp = requests.get(f"{HF_SPACE_URL}/static/{path}", timeout=30)
+        return Response(
+            response=resp.content,
+            status=resp.status_code,
+            headers=dict(resp.headers)
+        )
+    except:
+        return "Not found", 404
 
 # ===========================================
 # EMAIL HELPER FUNCTIONS
@@ -327,49 +483,6 @@ Best regards,
 HenAi Team
 """
     return send_email(email, subject, body)
-
-# ===========================================
-# PROXY FOR ALL OTHER REQUESTS
-# ===========================================
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD'])
-def proxy(path):
-    """Forward all other requests to HF Space"""
-    
-    # Skip auth routes we handle
-    if path in ['api/auth/register', 'api/auth/verify', 'api/auth/resend-verification', 
-                'api/auth/reset-request', 'api/auth/verify-reset', 'api/auth/reset-password']:
-        return Response('Not found', 404)
-    
-    target_url = f"{HF_SPACE_URL}/{path}" if path else HF_SPACE_URL
-    
-    headers = {}
-    for key, value in request.headers.items():
-        key_lower = key.lower()
-        if key_lower not in ['host', 'content-length', 'content-encoding']:
-            headers[key] = value
-    
-    try:
-        resp = requests.request(
-            method=request.method,
-            url=target_url,
-            headers=headers,
-            data=request.get_data(),
-            cookies=request.cookies,
-            timeout=120,
-            allow_redirects=True
-        )
-        
-        return Response(
-            response=resp.content,
-            status=resp.status_code,
-            headers=dict(resp.headers)
-        )
-        
-    except Exception as e:
-        logger.error(f"Proxy error: {e}")
-        return f"Error: {str(e)}", 503
 
 # ===========================================
 # HEALTH CHECK
